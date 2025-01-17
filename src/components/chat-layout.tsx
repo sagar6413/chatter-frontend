@@ -4,6 +4,8 @@ import { Sidebar } from "./sidebar";
 import { ChatInterface } from "./chat-interface";
 import { Navbar } from "./navbar";
 import { useState } from "react";
+import Settings from "./settings";
+
 
 export function ChatLayout() {
   const [selectedComponent, setSelectedComponent] = useState('messages'); // Default to messages
@@ -15,7 +17,7 @@ export function ChatLayout() {
         <div className="flex-1 flex flex-col">
           {selectedComponent === 'messages' && <ChatInterface />}
           {/* {selectedComponent === 'notifications' && <NotificationPanel />} */}
-          {/* {selectedComponent === 'settings' && <Settings />} */}
+          {selectedComponent === 'settings' && <Settings />}
         </div>
       
     </div>    

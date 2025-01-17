@@ -1,0 +1,237 @@
+Please take into careful consideration the @apiInformation.md file, the @websockerInformation.md file, and the @errorInformation.md file when working on the chat application.
+
+# Project Overview
+
+## Application Details
+
+- **Application Type:** Real-time chat application
+- **Frontend:** Next.js 15 (using App Router)
+- **Backend:** Spring Boot (completed)
+- **WebSocket:** STOMP protocol over SockJS
+- **UI Components:** shadcn/ui
+- **State Management:** Zustand
+- **API Requests:** Axios
+
+---
+
+## Development Environment
+
+- **Node.js:** Latest LTS version
+- **Package Manager:** bun
+- **Editor:** Cursor
+
+---
+
+## Core Principles
+
+1. **Clarity:** Prioritize clear, readable, and maintainable code.
+2. **Simplicity:** Avoid unnecessary complexity. Choose the simplest solution that meets the requirements.
+3. **Consistency:** Follow consistent naming, formatting, and code structure throughout the project.
+4. **Efficiency:** Write performant code but prioritize readability and maintainability.
+5. **Security:** Follow secure coding practices. Validate all inputs and handle errors properly.
+
+---
+
+## Technologies Used
+
+- **Frontend Framework:** Next.js 15 (App Router and React Server Components)
+- **UI Framework:** shadcn/ui
+- **State Management:** Zustand
+- **HTTP Client:** Axios
+- **WebSocket:** stompjs, sockjs-client
+- **Styling:** Tailwind CSS
+- **Language:** TypeScript
+
+---
+
+## Code Style and Structure
+
+### General Guidelines
+
+- Use **tabs** for indentation.
+- Prefer **single quotes** for strings (except to avoid escaping).
+- **Always use semicolons** 
+- Eliminate **unused variables**.
+- Use spaces after keywords, infix operators, and commas.
+- Add space before function declaration parentheses.
+- Use **strict equality (`===`)** instead of loose equality (`==`).
+- Limit **line length** to 80 characters.
+- Use **trailing commas** in multiline objects/arrays.
+
+### File Structure
+
+- Use **camelCases** for directory names (e.g., `components/chatWindow`).
+- File structure order:
+  1. Imports
+  2. Main exported component
+  3. Subcomponents
+  4. Helper functions
+  5. Styles
+  6. Static content (e.g., constants, types)
+
+### Naming Conventions
+
+- **Components:**kebab-case** (e.g., `components/chat-window`)
+- **Files/Directories:** kebab-case (e.g., `chat-window.tsx`)
+- **Variables/Functions:** camelCase (e.g., `messageList`)
+- **Constants:** UPPER_SNAKE_CASE (e.g., `API_ENDPOINT`)
+- **Boolean Variables:** Prefix with `is`, `has`, or `should` (e.g., `isLoading`).
+- **Event Handlers:** Prefix with `handle` (e.g., `handleClick`).
+- **Custom Hooks:** Prefix with `use` (e.g., `useChat`).
+
+---
+
+## React and Next.js Best Practices
+
+### React
+
+- Use **functional components** and hooks.
+- Memoize components with `React.memo()` and callbacks with `useCallback`.
+- Prefer **controlled components** for forms.
+- Use `React.lazy()` and `Suspense` for code splitting.
+
+### Next.js
+
+- Use the **App Router** for routing.
+- Implement proper metadata management.
+- Use **Server Components** by default.
+- Use `next/image` for optimized images.
+- Leverage **dynamic imports** for non-critical components.
+
+---
+
+## TypeScript
+
+- Enable **strict mode** in `tsconfig.json`.
+- Use **interfaces** and **type aliases** for better type definitions.
+- Avoid `any` unless absolutely necessary.
+- Use **utility types** (`Partial`, `Pick`, etc.) for type manipulation.
+- Implement **type guards** for type narrowing.
+
+---
+
+## UI and Styling
+
+- Use **shadcn/ui** for UI components.
+- Style with **Tailwind CSS**.
+- Follow a **mobile-first approach**.
+- Ensure **accessibility** through semantic HTML and sufficient contrast.
+- Implement **dark mode** with Tailwind's `dark:` variant.
+
+---
+
+# Performance Optimization
+- Favor React Server Components (RSC) to minimize `use client`, `useEffect`, and `setState`.
+- Implement dynamic importing for non-critical components.
+- Leverage image optimization techniques using WebP format with lazy loading.
+
+ ---
+
+## State Management (Zustand)
+
+- Create **stores** for global state.
+- Use **selectors** and **actions** for state updates.
+- Normalize the store structure to avoid deeply nested data.
+
+Example:
+
+```typescript
+// store/chatStore.ts
+import { create } from 'zustand';
+
+interface ChatState {
+  messages: Message[];
+  isConnecting: boolean;
+  isConnected: boolean;
+  addMessage: (message: Message) => void;
+  setConnected: (connected: boolean) => void;
+}
+
+const useChatStore = create<ChatState>((set) => ({
+  messages: [],
+  isConnecting: false,
+  isConnected: false,
+  addMessage: (message) =>
+    set((state) => ({ messages: [...state.messages, message] })),
+  setConnected: (connected) => set({ isConnected: connected }),
+}));
+
+export default useChatStore;
+```
+
+---
+
+## WebSocket Communication (stompjs and sockjs)
+
+- Use stompjs for STOMP client implementation.
+- Use sockjs-client to establish WebSocket connections.
+- Handle connection and reconnection logic efficiently.
+
+Example:
+
+```typescript
+// components/ChatConnection.tsx
+'use client';
+
+import { Client, type Message } from '@stomp/stompjs';
+import useChatStore from '@/store/chatStore';
+import React, { useEffect, useState } from 'react';
+import SockJS from 'sockjs-client';
+
+function ChatConnection() {
+  const addMessage = useChatStore((state) => state.addMessage);
+  const setConnected = useChatStore((state) => state.setConnected);
+  const [stompClient, setStompClient] = useState<Client | null>(null);
+
+  useEffect(() => {
+    const client = new Client({
+      webSocketFactory: () => new SockJS('/chat-websocket'),
+      debug: (str) => console.log(str),
+      onConnect: () => {
+        console.log('STOMP connected');
+        setConnected(true);
+        client.subscribe('/topic/messages', (message: Message) => {
+          addMessage(JSON.parse(message.body));
+        });
+      },
+      onStompError: (frame) => {
+        console.error('STOMP error:', frame);
+      },
+    });
+
+    client.activate();
+    setStompClient(client);
+
+    return () => {
+      client.deactivate();
+      setConnected(false);
+    };
+  }, [addMessage, setConnected]);
+
+  return null;
+}
+
+export default ChatConnection;
+```
+
+---
+
+## API Requests (Axios)
+
+- Use Axios for HTTP requests with async/await and interceptors.
+
+---
+
+## Error Handling and Validation
+
+- Use **guard clauses** for preconditions.
+- Implement **error boundaries** and user-friendly messages.
+- Validate inputs with **Zod**.
+
+---
+
+## Security
+
+- Sanitize inputs to prevent XSS.
+- Validate backend responses.
+- Secure sensitive data.
