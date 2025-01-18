@@ -3,111 +3,13 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "./ui/separator";
+import { useState } from "react";
+import { GroupConversationResponse, PrivateConversationResponse } from "@/types";
+import {} from '@/store/privateChatStore';
 
-const conversations = [
-  {
-    id: 1,
-    name: "Alice Johnson",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-    lastMessage: "Hey, how are you doing?",
-    time: "2m ago",
-    unread: 2,
-    online: true,
-    type: "PRIVATE",
-  },
-  {
-    id: 2,
-    name: "Design Team",
-    avatar: "https://images.unsplash.com/photo-1522071820081-009f0129c71c",
-    lastMessage: "New project requirements...",
-    time: "1h ago",
-    unread: 0,
-    online: false,
-    type: "GROUP",
-  },
-  {
-    id: 3,
-    name: "Alice Johnson",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-    lastMessage: "Hey, how are you doing?",
-    time: "2m ago",
-    unread: 2,
-    online: true,
-    type: "PRIVATE",
-  },
-  {
-    id: 4,
-    name: "Design Team",
-    avatar: "https://images.unsplash.com/photo-1522071820081-009f0129c71c",
-    lastMessage: "New project requirements...",
-    time: "1h ago",
-    unread: 236,
-    online: false,
-    type: "GROUP",
-  },
-  {
-    id: 5,
-    name: "Alice Johnson",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-    lastMessage: "Hey, how are you doing?",
-    time: "2m ago",
-    unread: 6,
-    online: true,
-    type: "PRIVATE",
-  },
-  {
-    id: 7,
-    name: "Design Team",
-    avatar: "https://images.unsplash.com/photo-1522071820081-009f0129c71c",
-    lastMessage: "New project requirements...",
-    time: "1h ago",
-    unread: 0,
-    online: false,
-    type: "GROUP",
-  },
-  {
-    id: 8,
-    name: "Alice Johnson",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-    lastMessage: "Hey, how are you doing?",
-    time: "2m ago",
-    unread: 2,
-    online: true,
-    type: "PRIVATE",
-  },
-  {
-    id: 9,
-    name: "Design Team",
-    avatar: "https://images.unsplash.com/photo-1522071820081-009f0129c71c",
-    lastMessage: "New project requirements...",
-    time: "1h ago",
-    unread: 0,
-    online: false,
-    type: "GROUP",
-  },
-  {
-    id: 10,
-    name: "Alice Johnson",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-    lastMessage: "Hey, how are you doing?",
-    time: "2m ago",
-    unread: 2,
-    online: true,
-    type: "PRIVATE",
-  },
-  {
-    id: 11,
-    name: "Design Team",
-    avatar: "https://images.unsplash.com/photo-1522071820081-009f0129c71c",
-    lastMessage: "New project requirements...",
-    time: "1h ago",
-    unread: 0,
-    online: false,
-    type: "GROUP",  },
-  // Add more conversations as needed
-];
 
-export function ConversationList({ activeTab }: { activeTab: string }) {
+export function ConversationList({ activeTab }: { activeTab: string, setSelectedConversations }) {
+  const {} = privateChatStore
   return (
     <div
       className="space-y-1 overflow-y-auto"

@@ -96,6 +96,7 @@ export interface UserResponse {
   id: number;
   username: string;
   displayName: string;
+  avatar: string;
   status: UserStatus;
   lastSeenAt: Timestamp;
   preferences: UserPreferenceResponse;

@@ -1,111 +1,146 @@
-import { create } from 'zustand';
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
-import { MessageRequest, MessageResponse } from '@/types';
+import { create } from 'zustand'
+import { Client, Frame, StompSubscription } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
+import { MessageResponse, MessageRequest, ConversationType } from '@/types/index'
 
-interface WebSocketState {
-  client: Client | null;
-  connected: boolean;
-  messages: Record<string, MessageResponse[]>;
-  connectionError: string | null;
-  
-  // Connection actions
-  connect: (token: string) => void;
-  disconnect: () => void;
-  
-  // Message actions
-  addMessage: (conversationId: number, message: MessageResponse) => void;
-  sendMessage: (message: Omit<MessageRequest, 'id' | 'timestamp'>) => void;
-  
-  // State management
-  setConnected: (connected: boolean) => void;
-  setError: (error: string | null) => void;
+interface WebSocketStore {
+  client: Client | null
+  connected: boolean
+  subscriptions: Map<number, StompSubscription>
+  connectionError: string | null
+  connect: (token: string) => void
+  disconnect: () => void
+  sendMessage: (message: MessageRequest, conversationType:ConversationType) => void
+  subscribeToConversation: (
+    conversationId: number, 
+    conversationType: ConversationType,
+    callback: (message: MessageResponse) => void
+  ) => () => void
+  retryCount: number
 }
 
-// Create the Zustand store with WebSocket functionality
-const useWebSocketStore = create<WebSocketState>((set, get) => ({
+const WEBSOCKET_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:8080/ws'
+const RECONNECT_DELAY = 5000
+const MAX_RETRIES = 5
+
+export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   client: null,
   connected: false,
-  messages: {},
+  subscriptions: new Map(),
   connectionError: null,
+  retryCount: 0,
 
   connect: (token: string) => {
-    // Create a new STOMP client
-    const client = new Client({
-      webSocketFactory: () => new SockJS(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080/ws'),
+    const { client } = get()
+    
+    if (client) {
+      client.deactivate()
+    }
+
+    const newClient = new Client({
+      webSocketFactory: () => new SockJS(WEBSOCKET_URL),
       connectHeaders: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token}`
       },
       debug: (str) => {
-        console.debug(str);
+        console.debug('STOMP: ' + str)
       },
-      reconnectDelay: 5000,
+      reconnectDelay: RECONNECT_DELAY,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
-    });
 
-    // Set up connection handlers
-    client.onConnect = () => {
-      set({ connected: true, connectionError: null });
-      
-      // Subscribe to user-specific channel for private messages
-      client.subscribe('/user/queue/messages', (message) => {
-        const receivedMessage = JSON.parse(message.body);
-        get().addMessage(receivedMessage.conversationId, receivedMessage);
-      });
-    };
+      onConnect: () => {
+        set({ connected: true, connectionError: null, retryCount: 0 })
+        console.log('WebSocket Connected')
+      },
 
-    client.onDisconnect = () => {
-      set({ connected: false });
-    };
+      onDisconnect: () => {
+        set({ connected: false })
+        console.log('WebSocket Disconnected')
+      },
 
-    client.onStompError = (frame) => {
-      set({ connectionError: frame.headers.message });
-    };
+      onStompError: (frame: Frame) => {
+        const retryCount = get().retryCount
+        if (retryCount < MAX_RETRIES) {
+          set({ retryCount: retryCount + 1 })
+          setTimeout(() => get().connect(token), RECONNECT_DELAY)
+        } else {
+          set({ 
+            connectionError: `Connection error: ${frame.headers['message']}`,
+            connected: false 
+          })
+        }
+      }
+    })
 
-    // Activate the client connection
-    client.activate();
-    set({ client });
+    newClient.activate()
+    set({ client: newClient })
   },
 
   disconnect: () => {
-    const { client } = get();
+    const { client } = get()
     if (client) {
-      client.deactivate();
-      set({ client: null, connected: false });
+      client.deactivate()
+      set({ client: null, connected: false, subscriptions: new Map() })
     }
   },
 
-  addMessage: (conversationId: number, message: MessageResponse) => {
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [conversationId]: [
-          ...(state.messages[conversationId] || []),
-          message,
-        ],
-      },
-    }));
-  },
-
-  sendMessage: (message) => {
-    const { client, connected } = get();
+  sendMessage: (message: MessageRequest, conversationType: ConversationType) => {
+    const { client, connected } = get()
     if (!client || !connected) {
-      set({ connectionError: 'Not connected to server' });
-      return;
+      console.error('WebSocket not connected')
+      return
     }
+    const destination = conversationType === 'PRIVATE' 
+      ? '/app/chat.sendPrivateMessage'
+      : '/app/chat.sendGroupMessage'
 
     client.publish({
-      destination: '/app/chat.sendPrivateMessage',
-      body: JSON.stringify(message),
-    });
-
-    // Optimistically add the message to the store
-    get().addMessage(message.conversationId, message);
+      destination,
+      body: JSON.stringify(message)
+    })
   },
 
-  setConnected: (connected: boolean) => set({ connected }),
-  setError: (error: string | null) => set({ connectionError: error }),
-}));
+  subscribeToConversation: (conversationId: number,
+    conversationType: ConversationType, callback: (message: MessageResponse) => void) => {
+    const { client, subscriptions } = get()
+    if (!client) {
+      console.error('WebSocket not connected')
+      return () => {}
+    }
 
-export default useWebSocketStore;
+    // Determine if this is a private or group conversation
+    const destination = conversationType === 'PRIVATE'
+      ? `/queue/chat/${conversationId}`
+      : `/topic/chat/${conversationId}`
+
+    // Unsubscribe from existing subscription if any
+    const existingSub = subscriptions.get(conversationId)
+    if (existingSub) {
+      existingSub.unsubscribe()
+    }
+
+    // Create new subscription
+    const subscription = client.subscribe(destination, (message) => {
+      try {
+        const parsedMessage = JSON.parse(message.body) as MessageResponse
+        callback(parsedMessage)
+      } catch (error) {
+        console.error('Error parsing message:', error)
+      }
+    })
+
+    // Store the subscription
+    const newSubscriptions = new Map(subscriptions)
+    newSubscriptions.set(conversationId, subscription)
+    set({ subscriptions: newSubscriptions })
+
+    // Return unsubscribe function
+    return () => {
+      subscription.unsubscribe()
+      const currentSubs = get().subscriptions
+      currentSubs.delete(conversationId)
+      set({ subscriptions: currentSubs })
+    }
+  }
+}))
