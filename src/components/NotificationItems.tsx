@@ -1,3 +1,4 @@
+"use client"
 import { Check, Timer } from "lucide-react";
 
 import { NotificationResponse } from "@/types";

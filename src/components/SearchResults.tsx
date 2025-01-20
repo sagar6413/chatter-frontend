@@ -1,3 +1,4 @@
+"use client"
 import { SearchResult } from "@/types";
 
 interface SearchResultsProps {

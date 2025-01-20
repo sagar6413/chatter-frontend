@@ -1,3 +1,4 @@
+"use client"
 import { Component, ErrorInfo, ReactNode } from "react";
 import { useErrorStore } from "@/store/errorStore";
 

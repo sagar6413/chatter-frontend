@@ -1,8 +1,13 @@
+// import {
+//   getNotifications,
+//   markAllNotificationsAsRead,
+//   markNotificationAsRead,
+// } from "@/services/notificationService";
 import {
   getNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
-} from "@/services/notificationService";
+} from "@/mock/api";
 import { NotificationResponse } from "@/types";
 import { AxiosError } from "axios";
 import { create } from "zustand";

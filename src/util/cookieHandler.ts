@@ -1,23 +1,22 @@
-import Cookies from 'js-cookie';
-import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from './consts';
-// Save tokens to cookies
-export const setTokens = (accessToken: string, refreshToken: string) => {
-  Cookies.set(ACCESS_TOKEN_KEY, accessToken, { secure: true, sameSite: 'strict' });
-  Cookies.set(REFRESH_TOKEN_KEY, refreshToken, { secure: true, sameSite: 'strict' });
+// src/util/cookieHandler.ts
+import { cookies } from "next/headers";
+import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from "@/types/index";
+
+// Get access token (Server Component utility)
+export const getAccessToken =async () => {
+  const cookieStore =await cookies();
+  return cookieStore.get(ACCESS_TOKEN_KEY)?.value;
 };
 
-// Get access token
-export const getAccessToken = () => {
-  return Cookies.get(ACCESS_TOKEN_KEY);
+// Get refresh token (Server Component utility)
+export const getRefreshToken = async () => {
+  const cookieStore = await cookies();
+  return cookieStore.get(REFRESH_TOKEN_KEY)?.value;
 };
 
-// Get refresh token
-export const getRefreshToken = () => {
-  return Cookies.get(REFRESH_TOKEN_KEY);
-};
-
-// Clear tokens from cookies (on logout)
-export const clearTokens = () => {
-  Cookies.remove(ACCESS_TOKEN_KEY);
-  Cookies.remove(REFRESH_TOKEN_KEY);
+// Clear tokens (Server Component utility)
+export const clearTokens = async () => {
+  const cookieStore = await cookies();
+  cookieStore.delete(ACCESS_TOKEN_KEY);
+  cookieStore.delete(REFRESH_TOKEN_KEY);
 };

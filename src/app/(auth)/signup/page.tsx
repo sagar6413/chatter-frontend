@@ -8,10 +8,8 @@ import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Image from 'next/image';
-import logo from '@/app/favicon.ico';
 import * as z from 'zod';
-import { useAuth } from '@/hooks/useAuth';
+import {signUp} from '@/services/authService'
 
 const signUpSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
@@ -34,20 +32,16 @@ export default function SignUpPage() {
   } = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
   });
-  const { signup, loading, error } = useAuth();
 
   const onSubmit = async (data: SignUpFormValues) => {
     console.log(data);
 
-    await signup({
+    await signUp({
         displayName: data.firstName + ' ' + data.lastName,
         username: data.username,
         password: data.password,
-        avatar: ''
     });
   };
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
   
   return (
     <div className="flex flex-col min-h-screen">      

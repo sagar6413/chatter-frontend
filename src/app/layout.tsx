@@ -4,7 +4,8 @@ import localFont from "next/font/local";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
-import { ErrorBoundary } from "@/components/error-boundary";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthProvider } from "@/components/AuthProvider";
 
 const geistSans = localFont({
   src: "../../public/fonts/GeistVF.woff",
@@ -33,15 +34,17 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ErrorBoundary>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <TooltipProvider>{children}</TooltipProvider>
-            <Toaster />
-          </ThemeProvider>
+          <AuthProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <TooltipProvider>{children}</TooltipProvider>
+              <Toaster />
+            </ThemeProvider>
+          </AuthProvider>
         </ErrorBoundary>
       </body>
     </html>

@@ -1,3 +1,4 @@
+"use client"
 import { getTime } from "@/util/dateTimeUtils";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Separator } from "@radix-ui/react-separator";

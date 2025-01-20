@@ -17,6 +17,7 @@ import {
 import { useUserStore } from "@/store/userStore";
 import { signOut } from "@/services/authService";
 import { getTime } from "@/util/dateTimeUtils";
+import Picker, { EmojiStyle } from "emoji-picker-react";
 
 export function MessageList({
   conversationId,
@@ -48,6 +49,8 @@ export function MessageList({
       // messageStore.clearMessages(conversationId);
     };
   }, [conversationId, conversations, loadInitialMessages]);
+
+  const handleOnReactionClick = () => {};
 
   return (
     <ScrollArea className="flex-1 p-4">
@@ -88,11 +91,11 @@ export function MessageList({
                       : "-right-2"
                   }`}
                 >
-                  <ReactionPicker
-                    reactions={defaultReactions}
-                    onReactionSelect={(emoji) =>
-                      handleOnReactionSelect(message.id, emoji)
-                    }
+                  <Picker
+                    reactionsDefaultOpen={true}
+                    onReactionClick={handleOnReactionClick}
+                    allowExpandReactions={false}
+                    emojiStyle={EmojiStyle.GOOGLE}
                   />
                 </div>
                 <div

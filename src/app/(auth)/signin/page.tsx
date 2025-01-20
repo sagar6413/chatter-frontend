@@ -8,10 +8,8 @@ import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Image from 'next/image';
-import logo from '@/app/favicon.ico';
 import * as z from 'zod';
-import { useAuth } from '@/hooks/useAuth';
+import {signIn} from '@/services/authService'
 
 const signInSchema = z.object({
   username: z.string().min(1,'Invalid username address'),
@@ -30,14 +28,10 @@ export default function SignInPage() {
   } = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
   });
-  const { signin, loading, error } = useAuth();
   const onSubmit = async (data: SignInFormValues) => {
     console.log(data);
-    await signin({ username: data.username, password: data.password });
+    await signIn({ username: data.username, password: data.password });
   };
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="flex flex-col min-h-screen">      
@@ -122,3 +116,33 @@ export default function SignInPage() {
     </div>
   );
 }
+
+
+/**
+ // src/components/SignInForm.tsx (Example Client Component)
+"use client";
+
+import { setTokens } from "@/actions/authActions"; // Import the Server Action
+import { useState } from "react";
+
+export default function SignInForm() {
+  const [accessToken, setAccessToken] = useState("");
+  const [refreshToken, setRefreshToken] = useState("");
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    // ... your form submission logic to get tokens ...
+
+    // Call the Server Action
+    await setTokens(accessToken, refreshToken);
+    // ... handle success or errors ...
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>      
+      <button type="submit">Sign In</button>
+    </form>
+  );
+}
+ */

@@ -7,11 +7,12 @@ import { create } from "zustand";
 import Cookies from "js-cookie";
 import { AxiosError } from "axios";
 import { signOut } from "@/services/authService";
-import { getMe, updatePreferences, updateUser } from "@/services/userService";
+// import { getMe, updatePreferences, updateUser } from "@/services/userService";
+import { getMe, updatePreferences, updateUser } from "@/mock/api";
 
 interface UserState {
   user: UserResponse | null;
-  setUser: (user: UserResponse) => Promise<void>;
+  setUser: () => Promise<void>;
   updateUser: (user: UserRequest) => Promise<void>;
   clearUser: () => void;
   updatePreferences: (preferences: UserPreferenceRequest) => Promise<void>;

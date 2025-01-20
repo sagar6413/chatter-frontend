@@ -1,3 +1,4 @@
+"use client"
 import { useMemo } from "react";
 import { Switch } from "./ui/switch";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";

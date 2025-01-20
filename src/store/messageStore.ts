@@ -1,7 +1,8 @@
 // messageStore.ts
 import { create } from "zustand";
 import { MessageResponse, MessageStatus } from "@/types";
-import { messageService } from "@/services/messageService";
+// import { messageService } from "@/services/messageService";
+import { loadInitialMessages, loadMoreMessages, updateMessageStatus } from "@/mock/api";
 import { AxiosError } from "axios";
 
 interface MessageState {
@@ -32,10 +33,10 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     set({ loading: true });
 
     try {
-      const response = await messageService.loadInitialMessages(conversationId);
+      const response = await loadInitialMessages(conversationId);
       const conversations = new Map(get().conversations);
 
-      conversations.set(conversationId, response);
+      conversations.set(conversationId, response.content);
 
       set({ conversations, loading: false });
     } catch (error) {
@@ -54,14 +55,14 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     set({ loadingMore: true });
 
     try {
-      const response = await messageService.loadMoreMessages(conversationId, {
+      const response = await loadMoreMessages(conversationId, {
         page: 2,
         size: 30,
       });
 
       const conversations = new Map(get().conversations);
       const existingMessages = conversation || [];
-      conversations.set(conversationId, [...existingMessages, ...response]);
+      conversations.set(conversationId, [...existingMessages, ...response.content]);
 
       set({ conversations, loadingMore: false });
     } catch (error) {
@@ -91,7 +92,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     status: MessageStatus
   ) => {
     try {
-      const updatedDeliveryStatus = await messageService.updateMessageStatus(
+      const updatedDeliveryStatus = await updateMessageStatus(
         conversationId,
         messageId,
         status

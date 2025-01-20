@@ -1,3 +1,4 @@
+import { useUserStore } from "@/store/userStore";
 import { AuthenticationResponse, SignInRequest, SignUpRequest } from "@/types";
 import { api } from "@/util/axiosInstance";
 import { clearTokens, setTokens } from "@/util/cookieHandler";
@@ -14,6 +15,8 @@ export const signIn = async (data: SignInRequest) => {
       authenticationResponse.accessToken,
       authenticationResponse.refreshToken
     );
+    const { setUser } = useUserStore();
+    await setUser();
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error("Error signing in:", error.response?.data);
@@ -33,6 +36,8 @@ export const signUp = async (data: SignUpRequest) => {
       authenticationResponse.accessToken,
       authenticationResponse.refreshToken
     );
+    const { setUser } = useUserStore();
+    await setUser();
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error("Error signing up:", error.response?.data);
@@ -45,6 +50,8 @@ export const signOut = async () => {
   try {
     await api.post("/auth/signout");
     clearTokens();
+    const { clearUser } = useUserStore();
+    clearUser();
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error("Error signing out:", error.response?.data);

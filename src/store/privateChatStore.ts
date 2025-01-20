@@ -3,10 +3,14 @@ import {
   PrivateConversationResponse,
   MessageResponse,
 } from "@/types/index";
+// import {
+//   createPrivateChat,
+//   getPrivateChats,
+// } from "@/services/privateChatService";
 import {
   createPrivateChat,
   getPrivateChats,
-} from "@/services/privateChatService";
+} from "@/mock/api";
 import { AxiosError } from "axios";
 
 interface PrivateChatState {

@@ -1,3 +1,4 @@
+"use client"
 import { useMemo } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "./ui/button";
