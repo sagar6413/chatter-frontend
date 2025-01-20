@@ -55,7 +55,7 @@ Base URL: `/api/v1/users`
 
 - **Endpoint**: PUT `/{username}/status`
 - **PathVariable**: username
-- **Request Body**: `UserStatus` enum
+- **Request Body**: `UserStatus`
 - **Response**: `UserStatus`
 - **Detail**: Update user's online status
 
