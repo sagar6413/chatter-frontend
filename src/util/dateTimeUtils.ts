@@ -36,3 +36,8 @@ export const getDayOfWeek = (timestamp: number): string => {
   const date = new Date(timestamp);
   return days[date.getDay()];
 };
+
+export const getTime = (timestamp: Date): string => {
+  const date = new Date(timestamp);
+  return `${date.getHours()}:${date.getMinutes()}`;
+};

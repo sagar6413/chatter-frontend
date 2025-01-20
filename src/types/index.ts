@@ -26,7 +26,6 @@ export enum MediaUploadStatus {
 export enum MessageStatus {
   NOT_SENT = "NOT_SENT",
   SENT = "SENT",
-  RECEIVED = "RECEIVED",
   DELIVERED = "DELIVERED",
   READ = "READ",
 }
@@ -39,14 +38,7 @@ export enum MessageType {
   DOCUMENT = "DOCUMENT",
 }
 
-export enum ReactionType {
-  LIKE = "LIKE",
-  LOVE = "LOVE",
-  HAHA = "HAHA",
-  WOW = "WOW",
-  SAD = "SAD",
-  ANGRY = "ANGRY",
-}
+export type ReactionType = "LIKE" | "LOVE" | "HAHA" | "WOW" | "SAD" | "ANGRY";
 
 export enum Theme {
   LIGHT = "LIGHT",
@@ -114,6 +106,7 @@ export interface User {
 // Group Chat related
 export interface GroupConversationResponse {
   conversationId: number;
+  avatar: string;
   participants: Set<UserResponse>;
   participantCount: number;
   lastMessage: MessageResponse;
@@ -157,12 +150,20 @@ export interface GroupSettingsResponse {
 // Private Chat related
 export interface PrivateConversationResponse {
   conversationId: number;
+  avatar: string;
   contact: UserResponse;
   lastMessage: MessageResponse;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
+// Search related
+export interface SearchResult {
+  users?: UserResponse[];
+  privateChats?: PrivateConversationResponse[];
+  groupChats?: GroupConversationResponse[];
+  messages?: MessageResponse[];
+}
 // Message related
 export interface MessageRequest {
   conversationId: number;
@@ -200,6 +201,18 @@ export interface ReactionResponse {
   type: ReactionType;
 }
 
+// Notification related
+export interface NotificationResponse {
+  id: number;
+  title: string;
+  message: string;
+  timestamp: Timestamp;
+  type: NotificationType;
+  read: boolean;
+}
+
+export type NotificationType = "CONNECTION REQUEST" | "MENTION" | "REACTION";
+
 // Media related
 export interface MediaUploadRequest {
   fileName: string;
@@ -227,9 +240,9 @@ interface Sort {
   empty: boolean;
   orders?: Array<{
     property: string;
-    direction: 'ASC' | 'DESC';
+    direction: "ASC" | "DESC";
     ignoreCase: boolean;
-    nullHandling: 'NATIVE' | 'NULLS_FIRST' | 'NULLS_LAST';
+    nullHandling: "NATIVE" | "NULLS_FIRST" | "NULLS_LAST";
   }>;
 }
 
@@ -258,3 +271,14 @@ export interface Page<T> extends Slice<T> {
   totalPages: number;
   totalElements: number;
 }
+
+export const MESSAGES_PER_PAGE = 30 as const;
+
+export const defaultReactions: ReactionType[] = [
+  "LIKE",
+  "LOVE",
+  "HAHA",
+  "WOW",
+  "SAD",
+  "ANGRY",
+] as const;

@@ -1,17 +1,20 @@
-import { useMemo } from 'react';
-import { Switch } from './ui/switch';
-import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
-import { Button } from './ui/button';
-import { useUserStore } from '@/store/userStore';
-import { Theme, UserPreferenceRequest } from '@/types';
+import { useMemo } from "react";
+import { Switch } from "./ui/switch";
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+import { Button } from "./ui/button";
+import { useUserStore } from "@/store/userStore";
+import { Theme, UserPreferenceRequest } from "@/types";
 
-export default function Settings() {
+export function Settings() {
   const { user, updatePreferences } = useUserStore();
 
-  const settings = useMemo(() => ({
-    notificationEnabled: user?.preferences?.notificationEnabled ?? true,
-    theme: user?.preferences?.theme ?? Theme.DARK,
-  }), [user]);
+  const settings = useMemo(
+    () => ({
+      notificationEnabled: user?.preferences?.notificationEnabled ?? true,
+      theme: user?.preferences?.theme ?? Theme.DARK,
+    }),
+    [user]
+  );
 
   const handleToggle = (key: keyof UserPreferenceRequest) => {
     updatePreferences({ ...settings, [key]: !settings[key] });
@@ -34,17 +37,17 @@ export default function Settings() {
                 <span className="text-purple-100">Enable Notifications</span>
                 <Switch
                   checked={settings.notificationEnabled}
-                  onCheckedChange={() => handleToggle('notificationEnabled')}
+                  onCheckedChange={() => handleToggle("notificationEnabled")}
                 />
               </div>
               <div className="flex items-center justify-between mt-4">
                 <span className="text-purple-100">Dark Mode</span>
                 <Switch
                   checked={settings.theme === Theme.LIGHT}
-                  onCheckedChange={() => handleToggle('theme')}
+                  onCheckedChange={() => handleToggle("theme")}
                 />
-              </div>                            
-            </CardContent>           
+              </div>
+            </CardContent>
           </Card>
 
           <Button className="mt-6" onClick={() => updatePreferences(settings)}>

@@ -1,6 +1,7 @@
-import { useCallback } from 'react'
-import { useWebSocketStore } from '@/store/webSocketStore'
-import { MessageRequest, MessageResponse, ConversationType } from '@/types/index'
+import { useCallback, useEffect } from "react";
+import { useWebSocketStore } from "@/store/webSocketStore";
+import { MessageRequest, ConversationType, MessageType } from "@/types/index";
+import { useMessageStore } from "@/store/messageStore";
 
 interface UseChatProps {
   conversationId: number;
@@ -8,23 +9,69 @@ interface UseChatProps {
 }
 
 export const useChat = ({ conversationId, conversationType }: UseChatProps) => {
-  const { 
-    sendMessage, 
+  const {
+    sendMessage: sendWebSocketMessage,
     subscribeToConversation,
-    connected 
-  } = useWebSocketStore()
+    connected,
+  } = useWebSocketStore();
 
-  const send = useCallback((message: MessageRequest) => {
-    sendMessage(message, conversationType)
-  }, [conversationId, conversationType, sendMessage])
+  const {
+    loading,
+    loadingMore,
+    loadInitialMessages,
+    loadMoreMessages,
+    addMessage,
+  } = useMessageStore();
 
-  const subscribe = useCallback((callback: (message: MessageResponse) => void) => {
-    return subscribeToConversation(conversationId, conversationType, callback)
-  }, [conversationId, conversationType, subscribeToConversation])
+  useEffect(() => {
+    loadInitialMessages(conversationId);
+
+    return () => {
+      // Optional: Clear messages when leaving conversation
+      // messageStore.clearMessages(conversationId)
+    };
+  }, [conversationId, loadInitialMessages]);
+
+  useEffect(() => {
+    if (!connected) return;
+
+    const unsubscribe = subscribeToConversation(
+      conversationId,
+      conversationType,
+      (message) => {
+        addMessage(conversationId, message);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [
+    conversationId,
+    connected,
+    subscribeToConversation,
+    conversationType,
+    addMessage,
+  ]);
+
+  const sendMessage = useCallback(
+    async (content: string) => {
+      const message: MessageRequest = {
+        conversationId,
+        content,
+        type: MessageType.TEXT,
+        mediaIds: new Set(),
+      };
+
+      sendWebSocketMessage(message, conversationType);
+    },
+    [conversationId, conversationType, sendWebSocketMessage]
+  );
 
   return {
-    sendMessage: send,
-    subscribeToConversation: subscribe,
-    connected
-  }
-}
+    loading,
+    loadingMore,
+    sendMessage,
+    loadMoreMessages: () => loadMoreMessages(conversationId),
+  };
+};

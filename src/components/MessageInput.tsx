@@ -84,3 +84,102 @@ export function MessageInput() {
     </div>
   );
 }
+
+/**
+ // src/components/Chat.tsx
+import { useEffect, useRef } from 'react'
+import { useChat } from '@/hooks/useChat'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { ConversationType } from '@/types/chat'
+
+interface ChatProps {
+  conversationId: number
+  conversationType: ConversationType
+}
+
+export default function Chat({ conversationId, conversationType }: ChatProps) {
+  const { connected } = useWebSocket()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  
+  const { 
+    messages, 
+    loading, 
+    loadingMore, 
+    hasMore, 
+    error,
+    sendMessage,
+    loadMoreMessages 
+  } = useChat({ 
+    conversationId, 
+    conversationType 
+  })
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  // Handle infinite scroll
+  const handleScroll = () => {
+    const container = containerRef.current
+    if (!container || loadingMore || !hasMore) return
+
+    if (container.scrollTop === 0) {
+      loadMoreMessages()
+    }
+  }
+
+  if (!connected) {
+    return <div>Connecting...</div>
+  }
+
+  if (loading) {
+    return <div>Loading messages...</div>
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div 
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto"
+      >
+        {loadingMore && (
+          <div className="text-center p-2">Loading more messages...</div>
+        )}
+        
+        {messages.map((message) => (
+          <div key={message.id} className="p-2">
+            <div className="font-bold">{message.senderDisplayName}</div>
+            <div>{message.content}</div>
+            <div className="text-sm text-gray-500">
+              {new Date(message.createdAt).toLocaleTimeString()}
+              {message.deliveryStatus.map(status => status.status).join(', ')}
+            </div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+      
+      <div className="p-4 border-t">
+        <input
+          type="text"
+          placeholder="Type a message..."
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              sendMessage(e.currentTarget.value)
+              e.currentTarget.value = ''
+            }
+          }}
+          className="w-full p-2 border rounded"
+        />
+      </div>
+    </div>
+  )
+}
+ */

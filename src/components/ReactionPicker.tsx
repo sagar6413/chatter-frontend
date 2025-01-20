@@ -6,21 +6,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ReactionType } from "@/types";
 import { SmileIcon } from "lucide-react";
+import React from "react";
 
-
-interface Reaction {
-    emoji: string;
-    count: number;
-    selected?: boolean;
-  }
-
-interface ReactionPickerProps {
+export function ReactionPicker({
+  reactions,
+  onReactionSelect,
+}: {
+  reactions: ReactionType[];
   onReactionSelect: (emoji: string) => void;
-  reactions: Reaction[];
-}
-
-export function ReactionPicker({ onReactionSelect, reactions }: ReactionPickerProps) {
+}) {
   return (
     <Popover>
       <PopoverTrigger asChild>

@@ -1,6 +1,6 @@
 import { api } from "@/util/axiosInstance";
 import { AxiosError } from "axios";
-import { GroupConversationResponse, GroupSettingsResponse, GroupRequest } from "@/types";
+import { GroupConversationResponse, GroupSettingsResponse, GroupRequest, UserResponse } from "@/types";
 
 export const createGroupChat = async (groupRequest: GroupRequest): Promise<GroupConversationResponse> => {
     try {
@@ -44,9 +44,10 @@ export const updateGroupSettings = async (groupId: number, settings: GroupSettin
     }
 };
 
-export const addParticipants = async (groupId: number, usernames: Set<string>): Promise<void> => {
+export const addParticipants = async (groupId: number, usernames: Set<string>): Promise<Set<UserResponse>> => {
     try {
-        await api.post<void>(`/${groupId}/participants`, Array.from(usernames));
+        const response = await api.post<Set<UserResponse>>(`/${groupId}/participants`, Array.from(usernames));
+        return response;
     } catch (error) {
         if (error instanceof AxiosError) {
             console.error("Error adding participants:", error.response?.data);

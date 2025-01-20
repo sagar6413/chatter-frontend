@@ -1,4 +1,8 @@
-import { UserPreferenceRequest, UserRequest, UserResponse } from "@/types/index";
+import {
+  UserPreferenceRequest,
+  UserRequest,
+  UserResponse,
+} from "@/types/index";
 import { create } from "zustand";
 import Cookies from "js-cookie";
 import { AxiosError } from "axios";
@@ -15,10 +19,10 @@ interface UserState {
 
 export const useUserStore = create<UserState>()((set) => ({
   user: null,
-  setUser: async() => {
+  setUser: async () => {
     try {
       const userResponse = await getMe();
-      set({ user: userResponse});
+      set({ user: userResponse });
     } catch (error) {
       // Handle error, maybe logout if auth error
       signOut();
@@ -47,13 +51,13 @@ export const useUserStore = create<UserState>()((set) => ({
     try {
       const userPreferenceResponse = await updatePreferences(preferences);
       set((state) => {
-        if (!state.user) return state;         
+        if (!state.user) return state;
         return {
           ...state, // Preserve all other state properties
           user: {
             ...state.user, // Preserve all user properties
-            prefrences: userPreferenceResponse // Update only preferences
-          }
+            prefrences: userPreferenceResponse, // Update only preferences
+          },
         };
       });
     } catch (error) {
