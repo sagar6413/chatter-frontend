@@ -1,3 +1,4 @@
+import { ReactionResponse, Theme } from "@/types";
 import {
   UserResponse,
   GroupConversationResponse,
@@ -11,11 +12,9 @@ import {
   MessageStatus,
   NotificationResponse,
   NotificationType,
-  GroupRole,
   GroupSettingsResponse,
-  User,
   MessageDeliveryStatusResponse,
-} from "./types";
+} from "@/types";
 
 // Helper function to generate a random date in the past
 function randomDate(start: Date, end: Date) {
@@ -115,7 +114,7 @@ for (let i = 1; i <= 20; i++) {
     lastSeenAt: randomDate(new Date(2023, 0, 1), new Date()),
     preferences: {
       notificationEnabled: Math.random() < 0.5,
-      theme: randomElement(["LIGHT", "DARK"]),
+      theme: randomElement(["LIGHT", "DARK"]) as Theme,
     },
     createdAt: randomDate(new Date(2022, 0, 1), new Date(2023, 0, 1)),
   });
@@ -198,12 +197,12 @@ for (let i = 1; i <= 50; i++) {
   const sender = randomElement(mockUsers);
   const numMediaItems =
     Math.random() < 0.3 ? Math.floor(Math.random() * 3) + 1 : 0; // 30% chance of having media
-  const mediaItems =
+  const mediaItems: Set<MediaResponse> =
     numMediaItems > 0
-      ? new Set(
+      ? new Set<MediaResponse>(
           Array.from({ length: numMediaItems }, () => randomElement(mockMedia))
         )
-      : new Set();
+      : new Set<MediaResponse>();
 
   const numReactions =
     Math.random() < 0.5 ? Math.floor(Math.random() * 5) + 1 : 0; // 50% chance of having reactions
@@ -392,13 +391,17 @@ for (let i = 1; i <= 10; i++) {
     Math.floor(groupConversation.participants.size / 2)
   ); // Half of the participants are admins
 
+  const creatorUser = mockUsers.find(
+    (u) => u.username === groupConversation.creatorUserName
+  );
+
+  const creatorId = creatorUser ? creatorUser.id : 0; // Handle undefined case
+
   mockGroupSettings.push({
     name: groupConversation.groupName,
     description: groupConversation.groupDescription,
     creator: {
-      id: mockUsers.find(
-        (u) => u.username === groupConversation.creatorUserName
-      )?.id!,
+      id: creatorId,
       username: groupConversation.creatorUserName,
       displayName: groupConversation.creatorName,
       status: UserStatus.ONLINE, // Or any other status you deem appropriate
