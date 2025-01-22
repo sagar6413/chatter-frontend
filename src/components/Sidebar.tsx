@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Users, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,7 +12,7 @@ import { MessageInput } from "./MessageInput";
 import { SearchResults } from "./SearchResults";
 import { useUserStore } from "@/store/userStore";
 import { signOut } from "@/services/authService";
-import { searchUser } from "@/services/userService";
+// import { searchUser } from "@/services/userService";
 import {
   ConversationType,
   GroupConversationResponse,
@@ -21,14 +21,13 @@ import {
 } from "@/types/index";
 import { UserProfileHeader } from "./UserProfileHeader.";
 import { SearchBar } from "./SearchBar";
-import { set } from "lodash";
+import { searchUser } from "@/mock/api";
 
 export function Sidebar() {
-  // Move all hooks to the top level of the component
   const { user, setUser } = useUserStore();
-  console.log("In Sidebar", user);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const [searchResults, setSearchResults] = useState<SearchResult>({});
+  const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [activeTab, setActiveTab] = useState<ConversationType>(
     ConversationType.PRIVATE
   );
@@ -36,50 +35,28 @@ export function Sidebar() {
     PrivateConversationResponse | GroupConversationResponse
   >();
 
-  const handleSearchUser = useCallback(async (query: string) => {
-    if (query.length <= 2) return;
+  useEffect(() => {
+    console.log("Selected conversation Changes : ", selectedConversation);
+  }, [selectedConversation]);
 
-    try {
-      const searchResult = await searchUser(query);
-      setSearchResults(searchResult);
-      console.log(searchResult);
-    } catch (error) {
-      console.error("Error searching users:", error);
-    }
-  }, []);
+  const handleSearchUser = useCallback(
+    async (query: string) => {
+      setSearchQuery(query);
 
-  const conversationHeaderData = useMemo(() => {
-    if (!selectedConversation) return null;
-    return {
-      avatar:
-        activeTab === ConversationType.PRIVATE
-          ? (selectedConversation as PrivateConversationResponse).contact.avatar
-          : (selectedConversation as GroupConversationResponse).avatar,
-      fallback:
-        activeTab === ConversationType.PRIVATE
-          ? (
-              selectedConversation as PrivateConversationResponse
-            ).contact.displayName
-              .split(" ")
-              .map((name) => name[0])
-              .join("")
-              .toUpperCase()
-          : (selectedConversation as GroupConversationResponse).groupName
-              .split(" ")
-              .map((name) => name[0])
-              .join("")
-              .toUpperCase(),
-      displayName:
-        activeTab === ConversationType.PRIVATE
-          ? (selectedConversation as PrivateConversationResponse).contact
-              .displayName
-          : (selectedConversation as GroupConversationResponse).groupName,
-      status:
-        activeTab === ConversationType.PRIVATE
-          ? (selectedConversation as PrivateConversationResponse).contact.status
-          : undefined,
-    };
-  }, [selectedConversation, activeTab]);
+      if (query.length <= 2) {
+        setSearchResults(null);
+        return;
+      }
+
+      try {
+        const searchResult = await searchUser(query);
+        setSearchResults(searchResult);
+      } catch (error) {
+        console.error("Error searching users:", error);
+      }
+    },
+    [setSearchQuery]
+  );
 
   // Handle authentication check after all hooks are defined
   if (!user) {
@@ -92,31 +69,45 @@ export function Sidebar() {
     }
   }
 
+  console.log("search user -->>", searchResults);
+
   return (
-    <div className="flex h-full">
+    <div className="flex h-full w-full">
       <div className="w-80 border-r sidebar-gradient flex flex-col backdrop-blur-xl bg-slate-800/50 border-purple-500/20">
-        <UserProfileHeader user={user} />
+        <UserProfileHeader
+          displayName={user.displayName}
+          avatar={user.avatar}
+        />
         <Separator />
         <SearchBar onSearch={handleSearchUser} />
-        {searchResults && <SearchResults searchResults={searchResults} />}
+        {searchResults && (
+          <SearchResults
+            searchResults={searchResults}
+            setActiveTab={setActiveTab}
+            setSelectedConversation={setSelectedConversation}
+            searchQuery={searchQuery}
+          />
+        )}
 
-        <div className="flex gap-2 p-4">
-          {Object.values(ConversationType).map((type) => (
-            <Button
-              key={type}
-              variant={activeTab === type ? "default" : "ghost"}
-              className="flex-1"
-              onClick={() => setActiveTab(type)}
-            >
-              {type === ConversationType.PRIVATE ? (
-                <MessageCircle className="h-4 w-4 mr-2" />
-              ) : (
-                <Users className="h-4 w-4 mr-2" />
-              )}
-              {type}
-            </Button>
-          ))}
-        </div>
+        {!searchResults && (
+          <div className="flex gap-2 p-4">
+            {Object.values(ConversationType).map((type) => (
+              <Button
+                key={type}
+                variant={activeTab === type ? "default" : "ghost"}
+                className="flex-1"
+                onClick={() => setActiveTab(type)}
+              >
+                {type === ConversationType.PRIVATE ? (
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                ) : (
+                  <Users className="h-4 w-4 mr-2" />
+                )}
+                {type}
+              </Button>
+            ))}
+          </div>
+        )}
 
         <Separator />
 
@@ -130,13 +121,14 @@ export function Sidebar() {
 
       {selectedConversation && (
         <div className="flex-1 flex flex-col">
-          {conversationHeaderData && <ChatHeader {...conversationHeaderData} />}
-          {selectedConversation && (
-            <MessageList
-              conversationId={selectedConversation.conversationId}
-              user={user}
-            />
-          )}
+          <ChatHeader
+            selectedConversation={selectedConversation}
+            activeTab={activeTab}
+          />
+          <MessageList
+            conversationId={selectedConversation.conversationId}
+            username={user.username}
+          />
           <MessageInput />
         </div>
       )}

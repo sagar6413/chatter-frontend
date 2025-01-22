@@ -19,7 +19,7 @@
 
 # production
 /build
-
+/.idx
 # misc
 .DS_Store
 *.pem

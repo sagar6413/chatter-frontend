@@ -519,10 +519,14 @@ export const updatePreferences = async (
 
 export const searchUser = async (query: string): Promise<SearchResult> => {
   try {
+    const existingChat = mockDB.privateConversations.find(
+      (chat) => chat.contact.username.toLowerCase().includes(query)
+    );
     const filteredUsers = mockDB.users.filter(
       (user) =>
-        user.username.toLowerCase().includes(query.toLowerCase()) ||
-        user.displayName.toLowerCase().includes(query.toLowerCase())
+        (user.username.toLowerCase().includes(query.toLowerCase()) ||
+        user.displayName.toLowerCase().includes(query.toLowerCase())) &&
+        !existingChat
     );
 
     const filteredPrivateChats = mockDB.privateConversations.filter((chat) =>

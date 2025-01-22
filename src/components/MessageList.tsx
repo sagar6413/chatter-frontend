@@ -6,47 +6,40 @@ import { cn } from "@/lib/utils";
 import { Check, CheckCheck, Timer } from "lucide-react";
 import { MessageReactions } from "./MessageReactions";
 import { useMessageStore } from "@/store/messageStore";
-import { useEffect, useState } from "react";
-import { MessageResponse, MessageStatus, UserResponse } from "@/types";
+import { useEffect } from "react";
+import { MessageStatus } from "@/types";
 import { getTime } from "@/util/dateTimeUtils";
 import Picker, { EmojiStyle } from "emoji-picker-react";
 
 export function MessageList({
   conversationId,
-  user,
+  username,
 }: {
   conversationId: number;
-  user: UserResponse;
+  username: string;
 }) {
   const { conversations, loadInitialMessages } = useMessageStore();
 
-  const [messages, setMessages] = useState<MessageResponse[]>([]);
-
   useEffect(() => {
-    const fetchMessages = async () => {
-      await loadInitialMessages(conversationId);
-      setMessages(conversations.get(conversationId) || []);
-    };
-
-    fetchMessages();
+    loadInitialMessages(conversationId);
 
     return () => {
       // Optional: Clear messages when leaving conversation
       // messageStore.clearMessages(conversationId);
     };
-  }, [conversationId, conversations, loadInitialMessages]);
+  }, [conversationId, loadInitialMessages]);
 
   const handleOnReactionClick = () => {};
 
   return (
     <ScrollArea className="flex-1 p-4">
       <div className="space-y-4">
-        {messages.map((message) => (
+        {conversations.get(conversationId)?.map((message) => (
           <div key={message.id}>
             <div
               className={cn(
                 "flex items-start gap-2",
-                message.senderUsername === user.username &&
+                message.senderUsername === username &&
                   "flex-row-reverse space-x-reverse"
               )}
             >
@@ -63,7 +56,7 @@ export function MessageList({
               <div
                 className={cn(
                   "rounded-lg p-3 min-w-[20%] max-w-[40%] relative",
-                  message.senderUsername === user.username
+                  message.senderUsername === username
                     ? "bg-gradient-to-r from-primary to-purple-500 text-white"
                     : "bg-muted text-muted-foreground"
                 )}
@@ -72,9 +65,7 @@ export function MessageList({
 
                 <div
                   className={`absolute -bottom-2 ${
-                    message.senderUsername === user.username
-                      ? "-left-2"
-                      : "-right-2"
+                    message.senderUsername === username ? "-left-2" : "-right-2"
                   }`}
                 >
                   <Picker
@@ -86,7 +77,7 @@ export function MessageList({
                 </div>
                 <div
                   className={`flex items-center mt-1 ${
-                    message.senderUsername === user.username
+                    message.senderUsername === username
                       ? "justify-end"
                       : "justify-start"
                   }`}
@@ -99,7 +90,7 @@ export function MessageList({
                 </div>
               </div>
             </div>
-            {message.senderUsername === user.username ? (
+            {message.senderUsername === username ? (
               <div className="flex  w-full items-center  justify-end gap-2  mt-1 pr-10">
                 <span className="text-[10px] text-purple-400">
                   {getTime(message.createdAt)}
