@@ -2,7 +2,11 @@
 import { create } from "zustand";
 import { MessageResponse, MessageStatus } from "@/types";
 // import { messageService } from "@/services/messageService";
-import { loadInitialMessages, loadMoreMessages, updateMessageStatus } from "@/mock/api";
+import {
+  loadInitialMessages,
+  loadMoreMessages,
+  updateMessageStatus,
+} from "@/mock/api";
 import { AxiosError } from "axios";
 
 interface MessageState {
@@ -62,7 +66,10 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
       const conversations = new Map(get().conversations);
       const existingMessages = conversation || [];
-      conversations.set(conversationId, [...existingMessages, ...response.content]);
+      conversations.set(conversationId, [
+        ...existingMessages,
+        ...response.content,
+      ]);
 
       set({ conversations, loadingMore: false });
     } catch (error) {
@@ -94,6 +101,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     try {
       const updatedDeliveryStatus = await updateMessageStatus(
         conversationId,
+        username,
         messageId,
         status
       );

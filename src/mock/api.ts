@@ -3,16 +3,12 @@ import {
   GroupConversationResponse,
   GroupRequest,
   GroupSettingsResponse,
-  MediaResponse,
   MessageDeliveryStatusResponse,
-  MessageRequest,
   MessageResponse,
   MessageStatus,
-  MessageType,
   NotificationResponse,
   Page,
   PrivateConversationResponse,
-  ReactionType,
   SearchResult,
   SignInRequest,
   SignUpRequest,
@@ -23,10 +19,8 @@ import {
   UserResponse,
   UserStatus,
 } from "@/types";
-import { clearTokens, setTokens } from "@/util/cookieHandler";
 import { AxiosError } from "axios";
 import { mockDB } from "./db";
-import { MESSAGES_PER_PAGE, defaultReactions } from "@/types";
 
 interface MessageQueryParams {
   page?: number;
@@ -38,13 +32,20 @@ const findUserByUsername = (username: string): UserResponse | undefined => {
   return mockDB.users.find((user) => user.username === username);
 };
 
-const findUserById = (id: number): UserResponse | undefined => {
-  return mockDB.users.find((user) => user.id === id);
-};
 // Mock authentication data
 const authenticationResponse: AuthenticationResponse = {
   refreshToken: "mockRefreshToken",
   accessToken: "mockAccessToken",
+};
+const setCookie = (
+  name: string,
+  value: string,
+  options: Record<string, string | boolean | number | Date>
+) => {
+  const cookieOptions = Object.entries(options)
+    .map(([key, value]) => `${key}=${value}`)
+    .join("; ");
+  document.cookie = `${name}=${value}; ${cookieOptions}`;
 };
 
 export const signIn = async (data: SignInRequest) => {
@@ -56,11 +57,22 @@ export const signIn = async (data: SignInRequest) => {
       throw new Error("Invalid credentials");
     }
 
-    setTokens(
-      authenticationResponse.accessToken,
-      authenticationResponse.refreshToken
-    );
-    return user;
+    setCookie("accessToken", authenticationResponse.accessToken, {
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+      maxAge: 15 * 60, // 15 minutes
+    });
+
+    // Set refresh token with security options
+    setCookie("refreshToken", authenticationResponse.refreshToken, {
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error("Error signing in:", error.response?.data);
@@ -72,9 +84,7 @@ export const signIn = async (data: SignInRequest) => {
 };
 export const signUp = async (data: SignUpRequest) => {
   try {
-    const existingUser = mockDB.users.find(
-      (u) => u.username === data.username
-    );
+    const existingUser = mockDB.users.find((u) => u.username === data.username);
     if (existingUser) {
       throw new Error("Username already exists");
     }
@@ -92,10 +102,22 @@ export const signUp = async (data: SignUpRequest) => {
       createdAt: new Date(),
     };
     mockDB.users.push(newUser);
-    setTokens(
-      authenticationResponse.accessToken,
-      authenticationResponse.refreshToken
-    );
+    setCookie("accessToken", authenticationResponse.accessToken, {
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+      maxAge: 15 * 60, // 15 minutes
+    });
+
+    // Set refresh token with security options
+    setCookie("refreshToken", authenticationResponse.refreshToken, {
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
     return newUser;
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -108,7 +130,21 @@ export const signUp = async (data: SignUpRequest) => {
 };
 export const signOut = async () => {
   try {
-    clearTokens();
+    setCookie("accessToken", "", {
+      path: "/",
+      expires: new Date(0),
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+    });
+
+    setCookie("refreshToken", "", {
+      path: "/",
+      expires: new Date(0),
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+    });
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error("Error signing out:", error.response?.data);
@@ -657,6 +693,7 @@ const loadMoreMessages = async (
 };
 const updateMessageStatus = async (
   conversationId: number,
+  username: string,
   messageId: number,
   status: string
 ): Promise<MessageDeliveryStatusResponse> => {
@@ -667,12 +704,18 @@ const updateMessageStatus = async (
     }
 
     message.deliveryStatus.forEach((deliveryStatus) => {
-      if (deliveryStatus.status !== MessageStatus.READ) {
-        deliveryStatus.status = status as MessageStatus;
-        deliveryStatus.statusTimestamp = new Date();
+      if (deliveryStatus.recipient.username === username) {
+        if (deliveryStatus.status !== MessageStatus.READ) {
+          deliveryStatus.status = status as MessageStatus;
+          deliveryStatus.statusTimestamp = new Date();
+        }
+        return deliveryStatus;
       }
     });
-    return message.deliveryStatus;
+    const data = Array.from(message.deliveryStatus).filter(
+      (deliveryStatus) => deliveryStatus.recipient.username === username
+    );
+    return data[0];
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error("Error updating message status:", error.response?.data);

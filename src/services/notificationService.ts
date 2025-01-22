@@ -1,6 +1,6 @@
 import { AxiosError } from "axios";
 
-import { api } from "@/util/axiosInstance";
+import { api } from "@/util/apiUtil";
 import { NotificationResponse } from "@/types";
 
 export const getNotifications = async (): Promise<NotificationResponse[]> => {

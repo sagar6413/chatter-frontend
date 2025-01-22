@@ -1,19 +1,22 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import {signIn} from '@/services/authService'
+import React, { useState } from "react";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { signIn } from "@/mock/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useUserStore } from "@/store/userStore";
+// import { signIn } from "@/services/authService";
 
 const signInSchema = z.object({
-  username: z.string().min(1,'Invalid username address'),
-  password: z.string().min(1, 'Password is required'),
+  username: z.string().min(1, "Invalid username address"),
+  password: z.string().min(1, "Password is required"),
   rememberMe: z.boolean().optional(),
 });
 
@@ -21,6 +24,9 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const { setUser } = useUserStore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     register,
     handleSubmit,
@@ -30,20 +36,30 @@ export default function SignInPage() {
   });
   const onSubmit = async (data: SignInFormValues) => {
     console.log(data);
-    await signIn({ username: data.username, password: data.password });
+    await signIn({
+      username: data.username,
+      password: data.password,
+    });
+    await setUser();
+    const redirect = searchParams.get("redirect") || "/";
+    router.push(redirect);
   };
 
   return (
-    <div className="flex flex-col min-h-screen">      
+    <div className="flex flex-col min-h-screen">
       <div
         className="flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8"
-        style={{ height: `calc(100vh - 4rem)` }}>
+        style={{ height: `calc(100vh - 4rem)` }}
+      >
         <div className="max-w-md w-full space-y-8">
           <div>
             <h1 className="text-3xl font-bold text-center">Welcome Back</h1>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="font-medium text-primary hover:underline">
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/signup"
+                className="font-medium text-primary hover:underline"
+              >
                 Sign up
               </Link>
             </p>
@@ -55,11 +71,13 @@ export default function SignInPage() {
                 <Input
                   id="username"
                   type="username"
-                  {...register('username')}
+                  {...register("username")}
                   placeholder="Enter your username"
                 />
                 {errors.username && (
-                  <p className="text-sm text-red-500 mt-1">{errors.username.message}</p>
+                  <p className="text-sm text-red-500 mt-1">
+                    {errors.username.message}
+                  </p>
                 )}
               </div>
               <div>
@@ -67,8 +85,8 @@ export default function SignInPage() {
                 <div className="relative">
                   <Input
                     id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    {...register('password')}
+                    type={showPassword ? "text" : "password"}
+                    {...register("password")}
                     placeholder="Enter your password"
                   />
                   <Button
@@ -76,7 +94,8 @@ export default function SignInPage() {
                     variant="ghost"
                     size="icon"
                     className="absolute right-0 top-0 h-full"
-                    onClick={() => setShowPassword(!showPassword)}>
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
                     {showPassword ? (
                       <EyeOffIcon className="h-4 w-4" />
                     ) : (
@@ -85,7 +104,9 @@ export default function SignInPage() {
                   </Button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
+                  <p className="text-sm text-red-500 mt-1">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -94,15 +115,21 @@ export default function SignInPage() {
                 <input
                   id="remember-me"
                   type="checkbox"
-                  {...register('rememberMe')}
+                  {...register("rememberMe")}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-muted-foreground">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-muted-foreground"
+                >
                   Remember me
                 </label>
               </div>
               <div className="text-sm">
-                <Link href="/forgot-password" className="font-medium text-primary hover:underline">
+                <Link
+                  href="/forgot-password"
+                  className="font-medium text-primary hover:underline"
+                >
                   Forgot your password?
                 </Link>
               </div>
@@ -116,7 +143,6 @@ export default function SignInPage() {
     </div>
   );
 }
-
 
 /**
  // src/components/SignInForm.tsx (Example Client Component)

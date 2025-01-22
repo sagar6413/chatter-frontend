@@ -21,10 +21,13 @@ import {
 } from "@/types/index";
 import { UserProfileHeader } from "./UserProfileHeader.";
 import { SearchBar } from "./SearchBar";
+import { set } from "lodash";
 
 export function Sidebar() {
   // Move all hooks to the top level of the component
-  const { user } = useUserStore();
+  const { user, setUser } = useUserStore();
+  console.log("In Sidebar", user);
+
   const [searchResults, setSearchResults] = useState<SearchResult>({});
   const [activeTab, setActiveTab] = useState<ConversationType>(
     ConversationType.PRIVATE
@@ -80,8 +83,13 @@ export function Sidebar() {
 
   // Handle authentication check after all hooks are defined
   if (!user) {
-    signOut();
-    return null;
+    setUser();
+    console.log("In sidebar updated user", user);
+    if (!user) {
+      console.log("In sidebar user is null");
+      signOut();
+      return null;
+    }
   }
 
   return (

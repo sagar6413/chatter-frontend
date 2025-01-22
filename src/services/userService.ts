@@ -5,7 +5,7 @@ import {
   UserRequest,
   UserResponse,
 } from "@/types";
-import { api } from "@/util/axiosInstance";
+import { api } from "@/util/apiUtil";
 import { AxiosError } from "axios";
 
 export const getMe = async (): Promise<UserResponse> => {

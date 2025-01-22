@@ -1,62 +1,101 @@
-import { useUserStore } from "@/store/userStore";
 import { AuthenticationResponse, SignInRequest, SignUpRequest } from "@/types";
-import { api } from "@/util/axiosInstance";
-import { clearTokens, setTokens } from "@/util/cookieHandler";
+import { api } from "@/util/apiUtil";
 import { AxiosError } from "axios";
+
+const setCookie = (
+  name: string,
+  value: string,
+  options: Record<string, string | boolean | number | Date>
+) => {
+  const cookieOptions = Object.entries(options)
+    .map(([key, value]) => `${key}=${value}`)
+    .join("; ");
+  document.cookie = `${name}=${value}; ${cookieOptions}`;
+};
 
 export const signIn = async (data: SignInRequest) => {
   try {
-    const authenticationResponse = await api.post<AuthenticationResponse>(
-      "/auth/signin",
-      data,
-      { skipAuth: true }
-    );
-    setTokens(
-      authenticationResponse.accessToken,
-      authenticationResponse.refreshToken
-    );
-    const { setUser } = useUserStore();
-    await setUser();
+    const { accessToken, refreshToken } =
+      await api.post<AuthenticationResponse>("/auth/signin", data, {
+        skipAuth: true,
+      });
+    // Set access token with security options
+    setCookie("accessToken", accessToken, {
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+      maxAge: 15 * 60, // 15 minutes
+    });
+
+    // Set refresh token with security options
+    setCookie("refreshToken", refreshToken, {
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error signing in:", error.response?.data);
-    } else {
-      console.error("Error signing in:", error);
+      throw new Error(error.response?.data?.message || "Authentication failed");
     }
+    throw error;
   }
 };
 export const signUp = async (data: SignUpRequest) => {
   try {
-    const authenticationResponse = await api.post<AuthenticationResponse>(
-      "/auth/signup",
-      data,
-      { skipAuth: true }
-    );
-    setTokens(
-      authenticationResponse.accessToken,
-      authenticationResponse.refreshToken
-    );
-    const { setUser } = useUserStore();
-    await setUser();
+    const { accessToken, refreshToken } =
+      await api.post<AuthenticationResponse>("/auth/signup", data, {
+        skipAuth: true,
+      });
+    // Set access token with security options
+    setCookie("accessToken", accessToken, {
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+      maxAge: 15 * 60, // 15 minutes
+    });
+
+    // Set refresh token with security options
+    setCookie("refreshToken", refreshToken, {
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error signing up:", error.response?.data);
-    } else {
-      console.error("Error signing up:", error);
+      throw new Error(error.response?.data?.message || "Authentication failed");
     }
+    throw error;
   }
 };
 export const signOut = async () => {
   try {
     await api.post("/auth/signout");
-    clearTokens();
-    const { clearUser } = useUserStore();
-    clearUser();
+    // Clear cookies securely
+    setCookie("accessToken", "", {
+      path: "/",
+      expires: new Date(0),
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+    });
+
+    setCookie("refreshToken", "", {
+      path: "/",
+      expires: new Date(0),
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      httpOnly: true,
+    });
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error signing out:", error.response?.data);
-    } else {
-      console.error("Error signing out:", error);
+      throw new Error(error.response?.data?.message || "Signout failed");
     }
+    throw error;
   }
 };

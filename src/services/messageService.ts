@@ -1,6 +1,6 @@
 // messageService.ts
 import { MessageDeliveryStatusResponse, MessageResponse, Page } from "@/types";
-import { api } from "@/util/axiosInstance";
+import { api } from "@/util/apiUtil";
 import { AxiosError } from "axios";
 
 interface MessageQueryParams {

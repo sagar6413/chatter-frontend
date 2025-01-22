@@ -5,17 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Check, CheckCheck, Timer } from "lucide-react";
 import { MessageReactions } from "./MessageReactions";
-import { ReactionPicker } from "./ReactionPicker";
 import { useMessageStore } from "@/store/messageStore";
 import { useEffect, useState } from "react";
-import {
-  defaultReactions,
-  MessageResponse,
-  MessageStatus,
-  UserResponse,
-} from "@/types";
-import { useUserStore } from "@/store/userStore";
-import { signOut } from "@/services/authService";
+import { MessageResponse, MessageStatus, UserResponse } from "@/types";
 import { getTime } from "@/util/dateTimeUtils";
 import Picker, { EmojiStyle } from "emoji-picker-react";
 
@@ -26,13 +18,7 @@ export function MessageList({
   conversationId: number;
   user: UserResponse;
 }) {
-  const {
-    conversations,
-    loading,
-    loadingMore,
-    loadInitialMessages,
-    loadMoreMessages,
-  } = useMessageStore();
+  const { conversations, loadInitialMessages } = useMessageStore();
 
   const [messages, setMessages] = useState<MessageResponse[]>([]);
 
