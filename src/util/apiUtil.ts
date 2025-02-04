@@ -1,3 +1,4 @@
+//--./src/util/apiUtil.ts--
 import { CustomRequestConfig } from "@/types/axios";
 import axiosInstance from "./axiosInstance";
 import { createErrorObjectCustomRequestConfig } from "./errorUtil";
@@ -28,6 +29,18 @@ export const api = {
   put: async <T>(url: string, data?: unknown, config?: CustomRequestConfig) => {
     try {
       const response = await axiosInstance.put<T>(url, data, config);
+      return response.data;
+    } catch (error) {
+      throw createErrorObjectCustomRequestConfig(error, config);
+    }
+  },
+  patch: async <T>(
+    url: string,
+    data?: unknown,
+    config?: CustomRequestConfig
+  ) => {
+    try {
+      const response = await axiosInstance.patch<T>(url, data, config);
       return response.data;
     } catch (error) {
       throw createErrorObjectCustomRequestConfig(error, config);

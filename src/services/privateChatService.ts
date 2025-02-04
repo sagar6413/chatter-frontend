@@ -1,3 +1,4 @@
+//--./src/services/privateChatService.ts--
 import { api } from "@/util/apiUtil";
 import { AxiosError } from "axios";
 import { PrivateConversationResponse } from "@/types";
@@ -12,11 +13,13 @@ export const createPrivateChat = async (
     return response;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error creating private chat:", error.response?.data);
-    } else {
-      console.error("Error creating private chat:", error);
+      throw error;
     }
-    throw new Error("Error creating private chat");
+    console.error(
+      "Error creating private chat in privateChatService.ts:",
+      error
+    );
+    throw new Error("Error creating private chat in privateChatService.ts");
   }
 };
 
@@ -30,10 +33,12 @@ export const getPrivateChats = async (): Promise<
     return response;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error fetching private chats:", error.response?.data);
-    } else {
-      console.error("Error fetching private chats:", error);
+      throw error;
     }
-    throw new Error("Error fetching private chats");
+    console.error(
+      "Error fetching private chats in privateChatService.ts:",
+      error
+    );
+    throw new Error("Error fetching private chats in privateChatService.ts");
   }
 };

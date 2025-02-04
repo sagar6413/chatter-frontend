@@ -1,3 +1,4 @@
+//--./src/services/notificationService.ts--
 import { AxiosError } from "axios";
 
 import { api } from "@/util/apiUtil";
@@ -9,11 +10,13 @@ export const getNotifications = async (): Promise<NotificationResponse[]> => {
     return response;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error fetching notifications:", error.response?.data);
-    } else {
-      console.error("Error fetching notifications:", error);
+      throw error;
     }
-    throw new Error("Error fetching notifications");
+    console.error(
+      "Error fetching notifications in notificationService.ts",
+      error
+    );
+    throw new Error("Error fetching notifications in notificationService.ts");
   }
 };
 
@@ -22,14 +25,15 @@ export const markNotificationAsRead = async (id: number): Promise<void> => {
     await api.put(`/notifications/${id}/read`);
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error(
-        "Error marking notification as read:",
-        error.response?.data
-      );
-    } else {
-      console.error("Error marking notification as read:", error);
+      throw error;
     }
-    throw new Error("Error marking notification as read");
+    console.error(
+      "Error marking notification as read in notificationService.ts",
+      error
+    );
+    throw new Error(
+      "Error marking notification as read in notificationService.ts"
+    );
   }
 };
 
@@ -38,13 +42,14 @@ export const markAllNotificationsAsRead = async (): Promise<void> => {
     await api.put("/notifications/read");
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error(
-        "Error marking all notifications as read:",
-        error.response?.data
-      );
-    } else {
-      console.error("Error marking all notifications as read:", error);
+      throw error;
     }
-    throw new Error("Error marking all notifications as read");
+    console.error(
+      "Error marking all notifications as read in notificationService.ts",
+      error
+    );
+    throw new Error(
+      "Error marking all notifications as read in notificationService.ts"
+    );
   }
 };

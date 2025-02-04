@@ -1,3 +1,4 @@
+//--./src/store/userStore.ts--
 import {
   UserPreferenceRequest,
   UserRequest,
@@ -12,6 +13,7 @@ import { getMe, updatePreferences, updateUser } from "@/mock/api";
 
 interface UserState {
   user: UserResponse | null;
+  loading: boolean;
   setUser: () => Promise<void>;
   updateUser: (user: UserRequest) => Promise<void>;
   clearUser: () => void;
@@ -20,10 +22,12 @@ interface UserState {
 
 export const useUserStore = create<UserState>()((set) => ({
   user: null,
+  loading: false,
   setUser: async () => {
     try {
+      set({ loading: true });
       const userResponse = await getMe();
-      set({ user: userResponse });
+      set({ user: userResponse, loading: false });
     } catch (error) {
       // Handle error, maybe logout if auth error
       signOut();
@@ -32,13 +36,14 @@ export const useUserStore = create<UserState>()((set) => ({
       } else {
         console.error("Error fetching user:", error);
       }
-      set({ user: null }); // Clear user data if fetch fails
+      set({ user: null, loading: false }); // Clear user data if fetch fails
     }
   },
   updateUser: async (user: UserRequest) => {
     try {
+      set({ loading: true });
       const userResponse = await updateUser(user);
-      set({ user: userResponse });
+      set({ user: userResponse, loading: false });
     } catch (error) {
       // Handle error
       if (error instanceof AxiosError) {
@@ -46,19 +51,22 @@ export const useUserStore = create<UserState>()((set) => ({
       } else {
         console.error("Error updating user:", error);
       }
+      set({ loading: false });
     }
   },
   updatePreferences: async (preferences: UserPreferenceRequest) => {
     try {
+      set({ loading: true });
       const userPreferenceResponse = await updatePreferences(preferences);
       set((state) => {
-        if (!state.user) return state;
+        if (!state.user) return { ...state, loading: false };
         return {
           ...state, // Preserve all other state properties
           user: {
             ...state.user, // Preserve all user properties
             prefrences: userPreferenceResponse, // Update only preferences
           },
+          loading: false,
         };
       });
     } catch (error) {
@@ -67,10 +75,11 @@ export const useUserStore = create<UserState>()((set) => ({
       } else {
         console.error("Error updating preferences:", error);
       }
+      set({ loading: false });
     }
   },
   clearUser: () => {
-    set({ user: null });
+    set({ user: null, loading: false });
     Cookies.remove("accessToken");
     Cookies.remove("refreshToken");
   },

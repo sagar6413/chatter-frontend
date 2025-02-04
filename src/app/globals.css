@@ -4,13 +4,13 @@
 
 /* Hide scrollbar for Chrome, Safari and Opera */
 *::-webkit-scrollbar {
-  display: none ;
+  display: none;
 }
 
 /* Hide scrollbar for IE, Edge and Firefox */
 * {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 @layer base {
@@ -75,4 +75,165 @@
 
 .search-input {
   @apply bg-muted/50 hover:bg-muted/80 transition-colors;
+}
+
+@layer utilities {
+  @custom-media --sm-viewport (min-width: 640px);
+  @custom-media --md-viewport (min-width: 768px);
+  @custom-media --lg-viewport (min-width: 1024px);
+
+  .button-center-vertical {
+    transform: translateY(-50%);
+  }
+  .min-h-safe {
+    min-height: calc(100vh - env(safe-area-inset-bottom));
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+  .reaction-bounce {
+    animation: reaction-bounce 0.4s ease-in-out;
+  }
+
+  /* Cosmic Color Palette */
+  :root {
+    --galaxy-deep: #0b0f1f;
+    --galaxy-dark: #1a1f37;
+    --galaxy-darker: #0d1224;
+    --galaxy-card: #1a203680;
+    --galaxy-border: #2d375880;
+    --galaxy-text: #c7d2fe;
+    --nebula-purple: #818cf8;
+    --nebula-blue: #60a5fa;
+    --nebula-pink: #ec4899;
+    --stellar-blue: #38bdf8;
+    --stellar-pink: #f472b6;
+  }
+
+  /* Animations */
+  @keyframes galaxy-rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes stellar-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes cosmic-glow {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+}
+@layer components {
+  .message-gradient-user {
+    @apply from-primary to-purple-500;
+  }
+  .message-gradient-other {
+    @apply from-teal-500 to-purple-500;
+  }
+  .hover-transition {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  .attachment-dropdown .hover-transition:hover {
+    @apply bg-purple-500/20; /* Use Tailwind's theme colors or your custom color */
+  }
+  @keyframes scaleUp {
+    0% {
+      transform: translateY(20px) scale(0.8);
+      opacity: 0;
+    }
+    50% {
+      transform: translateY(-5px) scale(1.05);
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes reaction-bounce {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  @keyframes popIn {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.15);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .reaction-picker {
+    animation: scaleUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .reaction-emoji {
+    animation: popIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+}
+
+@keyframes wave {
+  0% {
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(14deg);
+  }
+  20% {
+    transform: rotate(-8deg);
+  }
+  30% {
+    transform: rotate(14deg);
+  }
+  40% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+  60% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
 }

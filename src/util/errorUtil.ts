@@ -1,3 +1,4 @@
+//--./src/util/errorUtil.ts--
 import { AxiosError } from "axios";
 
 import { CustomInternalRequestConfig } from "@/types/axios";
@@ -49,6 +50,9 @@ const createErrorObject = <
     title: determineErrorTitle(error),
     status: determineErrorStatus(error),
     detail: determineErrorDetail(error),
+    name: error instanceof Error ? error.name : "Error",
+    message:
+      error instanceof Error ? error.message : "An unexpected error occurred",
     ...baseError,
   };
 };
@@ -66,9 +70,25 @@ export const createErrorObjectCustomInternalRequestConfig = (
 
 function determineErrorTitle(error: unknown): string {
   if (error instanceof AxiosError) {
-    if (error.code === "ECONNABORTED") return "Request Timeout";
-    if (error.code === "ERR_NETWORK") return "Network Error";
-    return "HTTP Error";
+    switch (error.code) {
+      case "ECONNABORTED":
+        return "Request Timeout";
+      case "ERR_NETWORK":
+        return "Network Error";
+    }
+    switch (error.response?.status) {
+      case 400:
+        return "Bad Request";
+      case 401:
+        return "Unauthorized";
+      case 403:
+        return "Forbidden";
+      case 404:
+        return "Resource Not Found";
+      // ... more status code cases as needed ...
+      default:
+        return "HTTP Error";
+    }
   }
   return "Application Error";
 }

@@ -1,3 +1,4 @@
+//--./src/services/userService.ts--
 import {
   SearchResult,
   UserPreferenceRequest,
@@ -10,43 +11,45 @@ import { AxiosError } from "axios";
 
 export const getMe = async (): Promise<UserResponse> => {
   try {
-    const userResponse = await api.get<UserResponse>("/me");
+    const userResponse = await api.get<UserResponse>("/users/me");
     return userResponse;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error fetching user:", error.response?.data);
-    } else {
-      console.error("Error fetching user:", error);
+      throw error;
     }
-    throw new Error("Error fetching user");
+    console.error("Error in userService.ts while fetching user:", error);
+    throw new Error("Error while fetching user");
   }
 };
 
 export const getUser = async (username: string): Promise<UserResponse> => {
   try {
-    const userResponse = await api.get<UserResponse>(`/username/${username}`);
+    const userResponse = await api.get<UserResponse>(
+      `/users/username/${username}`
+    );
     return userResponse;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error fetching user:", error.response?.data);
-    } else {
-      console.error("Error fetching user:", error);
+      throw error;
     }
-    throw new Error("Error fetching user");
+    console.error(
+      "Error in userService.ts while fetching user by username:",
+      error
+    );
+    throw new Error("Error in userService.ts while fetching user by username");
   }
 };
 
 export const updateUser = async (user: UserRequest): Promise<UserResponse> => {
   try {
-    const userResponse = await api.put<UserResponse>("/me", user);
+    const userResponse = await api.put<UserResponse>("/users/me", user);
     return userResponse;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error updating user:", error.response?.data);
-    } else {
-      console.error("Error updating user:", error);
+      throw error;
     }
-    throw new Error("Error updating user");
+    console.error("Error in userService.ts while updating user:", error);
+    throw new Error("Error in userService.ts while updating user");
   }
 };
 
@@ -55,17 +58,16 @@ export const updatePreferences = async (
 ): Promise<UserPreferenceResponse> => {
   try {
     const userPreferenceResponse = await api.put<UserPreferenceResponse>(
-      "/me/preferences",
+      "/users/me/preferences",
       preferences
     );
     return userPreferenceResponse;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error updating preferences:", error.response?.data);
-    } else {
-      console.error("Error updating preferences:", error);
+      throw error;
     }
-    throw new Error("Error updating preferences");
+    console.error("Error in userService.ts while updating preferences:", error);
+    throw new Error("Error in userService.ts while updating preferences");
   }
 };
 
@@ -75,10 +77,9 @@ export const searchUser = async (query: string): Promise<SearchResult> => {
     return userResponse;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error fetching user:", error.response?.data);
-    } else {
-      console.error("Error fetching user:", error);
+      throw error;
     }
-    throw new Error("Error fetching user");
+    console.error("Error in userService.ts while searching user:", error);
+    throw new Error("Error in userService.ts while searching user");
   }
 };

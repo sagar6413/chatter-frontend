@@ -1,3 +1,4 @@
+//--./src/services/groupChatService.ts--
 import { api } from "@/util/apiUtil";
 import { AxiosError } from "axios";
 import {
@@ -18,10 +19,9 @@ export const createGroupChat = async (
     return response;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error creating group chat:", error.response?.data);
-    } else {
-      console.error("Error creating group chat:", error);
+      throw error;
     }
+    console.error("Error creating group chat:", error);
     throw new Error("Error creating group chat");
   }
 };
@@ -34,13 +34,12 @@ export const fetchGroupConversations = async (): Promise<
     return response;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error(
-        "Error fetching group conversations:",
-        error.response?.data
-      );
-    } else {
-      console.error("Error fetching group conversations:", error);
+      throw error;
     }
+    console.error(
+      "Error fetching group conversations in groupChatService.ts",
+      error
+    );
     throw new Error("Error fetching group conversations");
   }
 };
@@ -57,11 +56,13 @@ export const updateGroupSettings = async (
     return response;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error updating group settings:", error.response?.data);
-    } else {
-      console.error("Error updating group settings:", error);
+      throw error;
     }
-    throw new Error("Error updating group settings");
+    console.error(
+      "Error updating group settings in groupChatService.ts",
+      error
+    );
+    throw new Error("Error updating group settings in groupChatService.ts");
   }
 };
 
@@ -77,11 +78,10 @@ export const addParticipants = async (
     return response;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error adding participants:", error.response?.data);
-    } else {
-      console.error("Error adding participants:", error);
+      throw error;
     }
-    throw new Error("Error adding participants");
+    console.error("Error adding participants in groupChatService.ts", error);
+    throw new Error("Error adding participants in groupChatService.ts");
   }
 };
 
@@ -93,10 +93,9 @@ export const removeParticipant = async (
     await api.delete<void>(`/${groupId}/participants/${username}`);
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error("Error removing participant:", error.response?.data);
-    } else {
-      console.error("Error removing participant:", error);
+      throw error;
     }
-    throw new Error("Error removing participant");
+    console.error("Error removing participant in groupChatService.ts", error);
+    throw new Error("Error removing participant in groupChatService.ts");
   }
 };

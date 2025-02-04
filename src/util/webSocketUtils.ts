@@ -1,3 +1,4 @@
+//--./src/util/webSocketUtils.ts--
 import { Client, Frame, Message, StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { useErrorStore } from "@/store/errorStore";
@@ -10,9 +11,16 @@ export class WebSocketClient {
   private connectionId: string;
   private subscriptions: Map<string, StompSubscription>;
 
-  constructor(url: string) {
+  constructor(url: string, token?: string) {
     this.connectionId = crypto.randomUUID();
     this.subscriptions = new Map();
+
+    const connectHeaders: { [key: string]: string } = {
+      connectionId: this.connectionId,
+    };
+    if (token) {
+      connectHeaders["Authorization"] = `Bearer ${token}`; // Add Authorization header if token exists
+    }
 
     this.client = new Client({
       webSocketFactory: () => new SockJS(url),
@@ -43,6 +51,8 @@ export class WebSocketClient {
         detail: frame.body,
         timestamp: new Date().toISOString(),
         connectionId: this.connectionId,
+        name: "STOMPError",
+        message: frame.body || "STOMP protocol error occurred",
         properties: {
           headers: frame.headers,
           command: frame.command,
@@ -62,6 +72,8 @@ export class WebSocketClient {
         detail: "Failed to connect to WebSocket server",
         timestamp: new Date().toISOString(),
         connectionId: this.connectionId,
+        name: "WebSocketError",
+        message: "Failed to connect to WebSocket server",
         attemptCount: this.reconnectAttempts,
         lastAttemptTime: new Date().toISOString(),
         properties: {
@@ -86,6 +98,8 @@ export class WebSocketClient {
       status: 1002,
       detail: "Maximum reconnection attempts reached",
       timestamp: new Date().toISOString(),
+      name: "MaxRetriesError",
+      message: "Maximum reconnection attempts reached",
       properties: {
         maxAttempts: this.maxReconnectAttempts,
       },

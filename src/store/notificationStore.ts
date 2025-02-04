@@ -1,8 +1,4 @@
-// import {
-//   getNotifications,
-//   markAllNotificationsAsRead,
-//   markNotificationAsRead,
-// } from "@/services/notificationService";
+//--./src/store/notificationStore.ts--
 import {
   getNotifications,
   markAllNotificationsAsRead,
@@ -41,7 +37,17 @@ export const useNotificationStore = create<NotificationState>()((set) => ({
   markAllAsRead: async () => {
     try {
       await markAllNotificationsAsRead();
-      set({ notifications: [] });
+      set((state) => {
+        const updatedNotifications = state.notifications.map((notification) => {
+          return {
+            ...notification,
+            read: true,
+          };
+        });
+        return {
+          notifications: updatedNotifications,
+        };
+      });
     } catch (error) {
       if (error instanceof AxiosError) {
         console.error(

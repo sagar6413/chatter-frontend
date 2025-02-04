@@ -1,3 +1,4 @@
+//--./src/hooks/useError.ts--
 import { useCallback, useMemo } from "react";
 import { useErrorStore } from "@/store/errorStore";
 import { ApiError, ErrorSource } from "@/types/errors";
@@ -38,6 +39,8 @@ export const useError = (): ErrorHookReturn => {
           title: error.name || "Application Error",
           status: 500,
           detail: error.message,
+          name: error.name || "Error",
+          message: error.message,
           timestamp: new Date().toISOString(),
           properties: {
             stack: error.stack,
@@ -50,6 +53,8 @@ export const useError = (): ErrorHookReturn => {
           title: "Unknown Error",
           status: 500,
           detail: String(error),
+          name: "UnknownError",
+          message: String(error),
           timestamp: new Date().toISOString(),
           properties: {
             source,

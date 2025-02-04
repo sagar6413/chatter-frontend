@@ -34,8 +34,8 @@ const findUserByUsername = (username: string): UserResponse | undefined => {
 
 // Mock authentication data
 const authenticationResponse: AuthenticationResponse = {
-  refreshToken: "mockRefreshToken",
-  accessToken: "mockAccessToken",
+  refreshToken: "mockRefreshToken.mockRefreshToken.mockRefreshToken",
+  accessToken: "mockAccessToken.mockAccessToken.mockAccessToken",
 };
 const setCookie = (
   name: string,
@@ -59,18 +59,12 @@ export const signIn = async (data: SignInRequest) => {
 
     setCookie("accessToken", authenticationResponse.accessToken, {
       path: "/",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      httpOnly: true,
       maxAge: 15 * 60, // 15 minutes
     });
 
     // Set refresh token with security options
     setCookie("refreshToken", authenticationResponse.refreshToken, {
       path: "/",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      httpOnly: true,
       maxAge: 7 * 24 * 60 * 60, // 7 days
     });
   } catch (error) {
@@ -133,17 +127,11 @@ export const signOut = async () => {
     setCookie("accessToken", "", {
       path: "/",
       expires: new Date(0),
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      httpOnly: true,
     });
 
     setCookie("refreshToken", "", {
       path: "/",
       expires: new Date(0),
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      httpOnly: true,
     });
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -519,13 +507,13 @@ export const updatePreferences = async (
 
 export const searchUser = async (query: string): Promise<SearchResult> => {
   try {
-    const existingChat = mockDB.privateConversations.find(
-      (chat) => chat.contact.username.toLowerCase().includes(query)
+    const existingChat = mockDB.privateConversations.find((chat) =>
+      chat.contact.username.toLowerCase().includes(query)
     );
     const filteredUsers = mockDB.users.filter(
       (user) =>
         (user.username.toLowerCase().includes(query.toLowerCase()) ||
-        user.displayName.toLowerCase().includes(query.toLowerCase())) &&
+          user.displayName.toLowerCase().includes(query.toLowerCase())) &&
         !existingChat
     );
 
@@ -580,7 +568,10 @@ const loadInitialMessages = async (
 
     const relevantMessages = mockDB.messages
       .filter((m) => m.conversationId === conversationId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
 
     const start = params.page! * params.size!;
     const end = start + params.size!;
@@ -646,7 +637,10 @@ const loadMoreMessages = async (
 
     const relevantMessages = mockDB.messages
       .filter((m) => m.conversationId === conversationId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
 
     const beforeIndex = params.before
       ? relevantMessages.findIndex((m) => m.id === params.before)
@@ -711,7 +705,9 @@ const updateMessageStatus = async (
       if (deliveryStatus.recipient.username === username) {
         if (deliveryStatus.status !== MessageStatus.READ) {
           deliveryStatus.status = status as MessageStatus;
-          deliveryStatus.statusTimestamp = new Date();
+          (
+            deliveryStatus as typeof deliveryStatus & { statusTimestamp: Date }
+          ).statusTimestamp = new Date();
         }
         return deliveryStatus;
       }
@@ -719,7 +715,21 @@ const updateMessageStatus = async (
     const data = Array.from(message.deliveryStatus).filter(
       (deliveryStatus) => deliveryStatus.recipient.username === username
     );
-    return data[0];
+    return {
+      ...data[0],
+      messageDeliveryStatusId: Date.now(),
+      statusTimestamp: new Date(),
+      recipient: {
+        ...data[0].recipient,
+        id: 0,
+        displayName: "User",
+        avatar: "",
+        status: UserStatus.OFFLINE,
+        lastSeenAt: new Date(),
+        preferences: mockDB.users[0].preferences,
+        createdAt: new Date(),
+      },
+    };
   } catch (error) {
     if (error instanceof AxiosError) {
       console.error("Error updating message status:", error.response?.data);
@@ -730,3 +740,8 @@ const updateMessageStatus = async (
   }
 };
 export { loadInitialMessages, loadMoreMessages, updateMessageStatus };
+
+export const getGoogleOAuthUrl = () => `/oauth2/authorization/google`;
+export const getInstagramOAuthUrl = () => `/oauth2/authorization/instagram`;
+export const getFacebookOAuthUrl = () => `/oauth2/authorization/facebook`;
+export const getTwitterOAuthUrl = () => `/oauth2/authorization/twitter`;

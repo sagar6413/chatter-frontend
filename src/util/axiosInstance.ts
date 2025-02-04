@@ -1,3 +1,4 @@
+//--./src/util/axiosInstance.ts--
 import axios, { AxiosError, AxiosResponse, AxiosInstance } from "axios";
 import Router from "next/router";
 import { API_CONSTANTS, ApiError } from "@/types/errors";
@@ -8,6 +9,12 @@ import {
 import { AuthenticationResponse } from "@/types";
 import { useErrorStore } from "@/store/errorStore";
 import { createErrorObjectCustomInternalRequestConfig } from "./errorUtil";
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  setTokens,
+} from "./tokenManagerUtil";
 
 // Constants
 const API_CONFIG: CustomRequestConfig = {
@@ -20,54 +27,6 @@ const API_CONFIG: CustomRequestConfig = {
   retry: 3,
   retryDelay: 1000,
 } as const;
-
-// Improved token management
-class TokenManager {
-  private static readonly TOKEN_CONFIG = {
-    path: "/",
-    secure: true,
-    sameSite: "strict",
-    httpOnly: true,
-  } as const;
-
-  private static readonly COOKIES = {
-    ACCESS: "accessToken",
-    REFRESH: "refreshToken",
-  } as const;
-
-  // Using a more robust cookie parsing approach
-  private static parseCookie(name: string): string | undefined {
-    return document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(`${name}=`))
-      ?.split("=")[1];
-  }
-
-  static getAccessToken(): string | undefined {
-    return this.parseCookie(this.COOKIES.ACCESS);
-  }
-
-  static getRefreshToken(): string | undefined {
-    return this.parseCookie(this.COOKIES.REFRESH);
-  }
-
-  static setTokens(accessToken: string, refreshToken: string): void {
-    const options = Object.entries(this.TOKEN_CONFIG)
-      .map(([key, value]) => `${key}=${value}`)
-      .join("; ");
-
-    document.cookie = `${this.COOKIES.ACCESS}=${accessToken}; ${options}`;
-    document.cookie = `${this.COOKIES.REFRESH}=${refreshToken}; ${options}`;
-  }
-
-  static clearTokens(): void {
-    const expires = "expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    const options = `path=/; ${expires}`;
-
-    document.cookie = `${this.COOKIES.ACCESS}=; ${options}`;
-    document.cookie = `${this.COOKIES.REFRESH}=; ${options}`;
-  }
-}
 
 // Request queue for handling concurrent requests during token refresh
 class RequestQueue {
@@ -111,7 +70,7 @@ const createAxiosInstance = (): AxiosInstance => {
 
   instance.interceptors.request.use(
     (config: CustomInternalRequestConfig) => {
-      const accessToken = TokenManager.getAccessToken();
+      const accessToken = getAccessToken();
       const isPublicRoute = API_CONSTANTS.PUBLIC_ROUTES.some((route) =>
         config.url?.includes(route)
       );
@@ -170,7 +129,7 @@ async function handleTokenRefresh(
     const response = await refreshToken(instance);
 
     const { accessToken, refreshToken: newRefreshToken } = response.data;
-    TokenManager.setTokens(accessToken, newRefreshToken);
+    setTokens(accessToken, newRefreshToken);
 
     originalRequest.headers.Authorization = `Bearer ${accessToken}`;
 
@@ -178,7 +137,7 @@ async function handleTokenRefresh(
     return instance(originalRequest);
   } catch (error) {
     requestQueue.rejectAll(error);
-    TokenManager.clearTokens();
+    clearTokens();
     Router.push("/signin");
     throw error;
   } finally {
@@ -242,7 +201,7 @@ function updateRequestMetadata(config: CustomInternalRequestConfig): void {
 }
 
 async function refreshToken(instance: AxiosInstance): Promise<AxiosResponse> {
-  const refreshToken = TokenManager.getRefreshToken();
+  const refreshToken = getRefreshToken();
   return instance.post<AuthenticationResponse>(
     `${API_CONFIG.baseURL}/refresh-token`,
     {

@@ -3,126 +3,387 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Check, CheckCheck, Timer } from "lucide-react";
-import { MessageReactions } from "./MessageReactions";
-import { useMessageStore } from "@/store/messageStore";
-import { useEffect } from "react";
-import { MessageStatus } from "@/types";
+import {
+  FaRegClock,
+  FaCheck,
+  FaCheckDouble,
+  FaRegThumbsUp,
+  FaRegHeart,
+  FaRegLaughBeam,
+  FaRegMeh,
+  FaRegFrown,
+  FaRegAngry,
+  FaRegSmile,
+} from "react-icons/fa";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import {
+  defaultReactions,
+  MessageDeliveryStatusResponse,
+  MessageStatus,
+  Theme,
+  ConversationType,
+  UserStatus,
+  ReactionType,
+} from "@/types";
 import { getTime } from "@/util/dateTimeUtils";
-import Picker, { EmojiStyle } from "emoji-picker-react";
+import { Button } from "./ui/button";
+import { MessageListSkeleton } from "./ui/message-skeleton";
+import cx from "clsx";
+import { MessageReactions } from "./MessageReactions";
+import { motion } from "framer-motion";
+import { useChatActions } from "@/store/selectors";
+import { useChat } from "@/hooks/useChat";
 
-export function MessageList({
-  conversationId,
-  username,
-}: {
+export interface MessageListProps {
   conversationId: number;
-  username: string;
-}) {
-  const { conversations, loadInitialMessages } = useMessageStore();
+  conversationType: ConversationType;
+}
+
+export default function MessageList({
+  conversationId,
+  conversationType,
+}: MessageListProps) {
+  const [openReactionId, setOpenReactionId] = useState<number | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const { messages, markAsRead } = useChat(conversationId, conversationType);
+  const { addReaction } = useChatActions();
 
   useEffect(() => {
-    loadInitialMessages(conversationId);
-
-    return () => {
-      // Optional: Clear messages when leaving conversation
-      // messageStore.clearMessages(conversationId);
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const isTrigger = target.closest("[data-reaction-trigger]");
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(target) &&
+        !isTrigger
+      ) {
+        setOpenReactionId(null);
+      }
     };
-  }, [conversationId, loadInitialMessages]);
 
-  const handleOnReactionClick = () => {};
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
-  return (
-    <ScrollArea className="flex-1 p-4">
-      <div className="space-y-4">
-        {conversations.get(conversationId)?.map((message) => (
-          <div key={message.id}>
-            <div
-              className={cn(
-                "flex items-start gap-2",
-                message.senderUsername === username &&
-                  "flex-row-reverse space-x-reverse"
+  const messageDeliveryStatusIcon = useCallback(
+    (messageDeliveryStatusResponse: MessageDeliveryStatusResponse) => {
+      switch (messageDeliveryStatusResponse.status) {
+        case MessageStatus.NOT_SENT:
+          return <FaRegClock className="w-4 h-4 text-gray-400" />;
+        case MessageStatus.SENT:
+          return <FaCheck className="w-4 h-4 text-purple-400" />;
+        case MessageStatus.DELIVERED:
+          return <FaCheckDouble className="w-4 h-4 text-purple-400" />;
+        case MessageStatus.READ:
+          return <FaCheck className="w-4 h-4 text-teal-400" />;
+        default:
+          return null;
+      }
+    },
+    []
+  );
+
+  const showReactionPicker = useCallback((reaction: string) => {
+    switch (reaction) {
+      case "LIKE":
+        return <FaRegThumbsUp className="w-4 h-4 text-yellow-300" />;
+      case "LOVE":
+        return <FaRegHeart className="w-4 h-4 text-red-300" />;
+      case "HAHA":
+        return <FaRegLaughBeam className="w-4 h-4 text-yellow-300" />;
+      case "WOW":
+        return <FaRegMeh className="w-4 h-4 text-yellow-300" />;
+      case "SAD":
+        return <FaRegFrown className="w-4 h-4 text-yellow-300" />;
+      case "ANGRY":
+        return <FaRegAngry className="w-4 h-4 text-yellow-300" />;
+      default:
+        return null;
+    }
+  }, []);
+
+  const messageDeliveryStatusIconChecker = useCallback(
+    (deliveryStatuses: Set<MessageDeliveryStatusResponse>) => {
+      const statusArray = Array.from(deliveryStatuses);
+
+      if (statusArray.length === 1) {
+        return messageDeliveryStatusIcon(statusArray[0]);
+      }
+
+      const allStatuses = statusArray.map((status) => status.status);
+
+      if (allStatuses.every((status) => status === MessageStatus.READ)) {
+        return <FaCheck className="w-2 h-2 text-teal-400" />;
+      }
+
+      const hasRead = allStatuses.some(
+        (status) => status === MessageStatus.READ
+      );
+      const allDeliveredOrRead = allStatuses.every(
+        (status) =>
+          status === MessageStatus.DELIVERED || status === MessageStatus.READ
+      );
+      if (hasRead && allDeliveredOrRead) {
+        return <FaCheck className="w-3 h-3 text-purple-400" />;
+      }
+
+      const someRead = allStatuses.some(
+        (status) => status === MessageStatus.READ
+      );
+      const someDelivered = allStatuses.some(
+        (status) => status === MessageStatus.DELIVERED
+      );
+      const allSentOrBetter = allStatuses.every(
+        (status) =>
+          status === MessageStatus.SENT ||
+          status === MessageStatus.DELIVERED ||
+          status === MessageStatus.READ
+      );
+
+      if (someRead && someDelivered && allSentOrBetter) {
+        return <FaCheck className="w-3 h-3 text-purple-400" />;
+      }
+
+      if (allStatuses.every((status) => status === MessageStatus.NOT_SENT)) {
+        return <FaRegClock className="w-3 h-3 text-gray-400" />;
+      }
+
+      return messageDeliveryStatusIcon(statusArray[0]);
+    },
+    [messageDeliveryStatusIcon]
+  );
+
+  const toggleReactions = useCallback((messageId: number) => {
+    setOpenReactionId((prev) => (prev === messageId ? null : messageId));
+  }, []);
+
+  const handleReaction = useCallback(
+    (messageId: number, reaction: string) => {
+      addReaction(conversationId, messageId, {
+        id: Date.now(),
+        username: "current-user", // This should come from auth context
+        displayName: "Current User",
+        avatarUrl: "",
+        type: reaction as ReactionType,
+      });
+      setOpenReactionId(null); // Close reaction picker after selection
+    },
+    [conversationId, addReaction]
+  );
+
+  const memoizedMessages = useMemo(
+    () =>
+      messages.map((message) => (
+        <motion.div
+          key={message.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className={cn(
+            "flex items-start gap-3 group ",
+            message.senderUsername === "current-user"
+              ? "justify-end"
+              : "justify-start"
+          )}
+          onMouseEnter={() => markAsRead(message.id)}
+        >
+          <div className="relative max-w-[80%] min-w-[60%] my-1.5 ">
+            <div className="flex  items-start gap-2.5 ">
+              {message.senderUsername !== "current-user" && (
+                <Avatar className="h-9 w-9 border-2 border-purple-600/20 hover:border-purple-500/40 transition-colors">
+                  {message.senderAvatarUrl ? (
+                    <AvatarImage
+                      src={message.senderAvatarUrl}
+                      alt={message.senderDisplayName}
+                    />
+                  ) : (
+                    <AvatarFallback>
+                      {message.senderDisplayName
+                        .split(" ")
+                        .map((name) => name[0])
+                        .join("")
+                        .toUpperCase()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
               )}
-            >
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={message.senderAvatarUrl} />
-                <AvatarFallback>
-                  {message.senderDisplayName
-                    .split(" ")
-                    .map((name) => name[0])
-                    .join("")
-                    .toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div
-                className={cn(
-                  "rounded-lg p-3 min-w-[20%] max-w-[40%] relative",
-                  message.senderUsername === username
-                    ? "bg-gradient-to-r from-primary to-purple-500 text-white"
-                    : "bg-muted text-muted-foreground"
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className={cx(
+                  "relative min-w-[40%] rounded-2xl pt-2 pb-4 pl-4 pr-2 shadow-lg",
+                  message.senderUsername === "current-user"
+                    ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white ml-12 rounded-br-sm"
+                    : "bg-slate-800 border border-slate-700/60 mr-12 rounded-bl-sm",
+                  "hover:shadow-xl transition-all duration-200 "
                 )}
               >
-                <p className="text-purple-100">{message.content}</p>
+                <p className="text-[15px] leading-snug tracking-wide">
+                  {message.content}
+                </p>
 
-                <div
-                  className={`absolute -bottom-2 ${
-                    message.senderUsername === username ? "-left-2" : "-right-2"
-                  }`}
+                <span
+                  className={`absolute text-xs font-medium text-purple-100/70
+                  ${
+                    message.senderUsername === "current-user"
+                      ? "left-6 bottom"
+                      : "right-6 bottom"
+                  }
+                  `}
                 >
-                  <Picker
-                    reactionsDefaultOpen={true}
-                    onReactionClick={handleOnReactionClick}
-                    allowExpandReactions={false}
-                    emojiStyle={EmojiStyle.GOOGLE}
-                  />
-                </div>
+                  {getTime(new Date(message.timestamp))}
+                </span>
+                {message.senderUsername === "current-user" && (
+                  <div className="absolute flex items-center gap-1 left-20 bottom-0.5">
+                    {message.deliveryStatus.length > 0 &&
+                      messageDeliveryStatusIconChecker(
+                        new Set(
+                          message.deliveryStatus.map((status) => ({
+                            ...status,
+                            messageDeliveryStatusId: Math.random(),
+                            statusTimestamp: new Date(), // Use current date as fallback
+                            recipient: {
+                              ...status.recipient,
+                              id: 0, // Mock value
+                              displayName: status.recipient.username,
+                              avatar: "",
+                              status: UserStatus.ONLINE,
+                              lastSeenAt: new Date(),
+                              createdAt: new Date(),
+                              preferences: {
+                                notificationEnabled: false,
+                                theme: Theme.DARK,
+                              },
+                            },
+                          }))
+                        )
+                      )}
+                  </div>
+                )}
+
+                {/* Reactions section */}
                 <div
-                  className={`flex items-center mt-1 ${
-                    message.senderUsername === username
-                      ? "justify-end"
-                      : "justify-start"
-                  }`}
+                  className={cn(
+                    "absolute flex gap-1.5",
+                    message.senderUsername === "current-user"
+                      ? "right-3 -bottom-4"
+                      : "left-3 -bottom-4"
+                  )}
                 >
-                  {Array.from(message.reactions).length > 0 && (
+                  {message.reactions.length > 0 && (
                     <MessageReactions
                       reactions={Array.from(message.reactions)}
                     />
                   )}
                 </div>
-              </div>
-            </div>
-            {message.senderUsername === username ? (
-              <div className="flex  w-full items-center  justify-end gap-2  mt-1 pr-10">
-                <span className="text-[10px] text-purple-400">
-                  {getTime(message.createdAt)}
-                </span>
-                {message &&
-                  Array.from(message.deliveryStatus).map(
-                    (messageDeliveryStatus) => {
-                      switch (messageDeliveryStatus.status) {
-                        case MessageStatus.NOT_SENT:
-                          return <Timer className="w-4 h-4 text-gray-400" />;
-                        case MessageStatus.SENT:
-                          return <Check className="w-4 h-4 text-purple-400" />;
-                        case MessageStatus.DELIVERED:
-                          <CheckCheck className="w-4 h-4 text-purple-400" />;
-                        case MessageStatus.READ:
-                          return <Check className="w-4 h-4 text-teal-400" />;
-                        default:
-                          return null;
-                      }
-                    }
+
+                {/* Message tail */}
+                <div
+                  className={cn(
+                    "absolute -bottom-[2px] w-2 h-2 rotate-45 transition-all",
+                    "origin-center hover:scale-110",
+                    message.senderUsername === "current-user"
+                      ? "-right-1 bg-indigo-600"
+                      : "-left-1 bg-slate-800 border-l border-b border-slate-700/60"
                   )}
-              </div>
-            ) : (
-              <div className="flex  w-full items-center justify-start pl-10">
-                <span className="text-[10px] text-purple-400 mt-1">
-                  {getTime(message.createdAt)}
-                </span>
-              </div>
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "w-7 h-7 rounded-full bg-slate-800/50 backdrop-blur-lg border border-slate-700/60",
+                    "hover:bg-purple-600/30 hover:border-purple-500/40",
+                    "transition-all duration-200 scale-90 opacity-1 group-hover:scale-100 group-hover:opacity-100",
+                    "absolute",
+                    message.senderUsername === "current-user"
+                      ? "-left-2 -bottom-2"
+                      : "-right-2 -bottom-2"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleReactions(message.id);
+                  }}
+                  data-reaction-trigger
+                  aria-label="Show reactions"
+                >
+                  <FaRegSmile className="w-4 h-4 text-purple-400 hover:text-purple-300" />
+                </Button>
+              </motion.div>
+            </div>
+
+            {/* Reaction picker */}
+            {openReactionId === message.id && (
+              <motion.div
+                ref={pickerRef}
+                initial={{ scale: 0.5, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.5, opacity: 0, y: 20 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className={cn(
+                  "absolute flex p-1 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-lg",
+                  "rounded-2xl border border-slate-700/60 shadow-2xl shadow-slate-950/60",
+                  message.senderUsername === "current-user"
+                    ? " -left-4 -top-4 "
+                    : "-right-4 -top-4 "
+                )}
+              >
+                {defaultReactions.map((reaction) => (
+                  <motion.div
+                    key={reaction}
+                    whileHover={{ scale: 1, y: -5 }}
+                    whileTap={{ scale: 0.9 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative w-9 h-9 rounded-full bg-transparent hover:bg-purple-500/20 
+                               transition-[transform,background-color] duration-200 group"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReaction(message.id, reaction);
+                      }}
+                      aria-label={reaction}
+                    >
+                      <motion.span
+                        className="block text-lg transform-gpu"
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {showReactionPicker(reaction)}
+                      </motion.span>
+                    </Button>
+                  </motion.div>
+                ))}
+              </motion.div>
             )}
           </div>
-        ))}
-      </div>
+        </motion.div>
+      )),
+    [
+      messages,
+      messageDeliveryStatusIconChecker,
+      openReactionId,
+      toggleReactions,
+      showReactionPicker,
+      handleReaction,
+      markAsRead,
+    ]
+  );
+
+  if (messages.length === 0) {
+    return (
+      <ScrollArea className="h-full">
+        <MessageListSkeleton />
+      </ScrollArea>
+    );
+  }
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="flex flex-col p-4 gap-4">{memoizedMessages}</div>
     </ScrollArea>
   );
 }

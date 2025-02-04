@@ -1,4 +1,4 @@
-export interface ApiError {
+export interface ApiError extends Error {
   type: string;
   title: string;
   status: number;

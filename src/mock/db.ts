@@ -238,11 +238,13 @@ for (let i = 1; i <= 50; i++) {
   mockMessages.push({
     id: i,
     conversationId: Math.floor(Math.random() * 10) + 1, // Assuming 10 conversations
+    senderId: sender.id,
     senderUsername: sender.username,
     senderAvatarUrl: sender.avatar,
     senderDisplayName: sender.displayName,
     content: mediaItems.size > 0 ? "" : randomElement(messageContents),
-    mediaItems,
+    mediaUrls:
+      mediaItems.size > 0 ? Array.from(mediaItems).map((m) => m.uploadUrl) : [],
     type:
       mediaItems.size > 0
         ? randomElement([
@@ -252,10 +254,15 @@ for (let i = 1; i <= 50; i++) {
             MessageType.DOCUMENT,
           ])
         : MessageType.TEXT,
-    reactions: messageReaction,
-    createdAt: randomDate(new Date(2023, 0, 1), new Date()),
-    editedAt: randomDate(new Date(2023, 0, 1), new Date()),
-    deliveryStatus: messageDeliveryStatus,
+    reactions: Array.from(messageReaction),
+    timestamp: randomDate(new Date(2023, 0, 1), new Date()).toISOString(),
+    editedAt: randomDate(new Date(2023, 0, 1), new Date()).toISOString(),
+    deliveryStatus: Array.from(messageDeliveryStatus),
+    status: randomElement([
+      MessageStatus.SENT,
+      MessageStatus.DELIVERED,
+      MessageStatus.READ,
+    ]),
   });
 }
 
@@ -404,13 +411,39 @@ for (let i = 1; i <= 10; i++) {
       id: creatorId,
       username: groupConversation.creatorUserName,
       displayName: groupConversation.creatorName,
-      status: UserStatus.ONLINE, // Or any other status you deem appropriate
+      status: UserStatus.ONLINE,
+      avatarUrl: creatorUser?.avatar || "",
+      preferences: {
+        ...(creatorUser?.preferences || mockUsers[0].preferences),
+        notificationsEnabled: true,
+        soundEnabled: true,
+        language: "en",
+        theme: creatorUser?.preferences.theme.toLowerCase() as
+          | "light"
+          | "dark"
+          | "system",
+      },
     },
     onlyAdminsCanSend: groupConversation.onlyAdminsCanSend,
     messageRetentionDays: groupConversation.messageRetentionDays,
     maxMembers: groupConversation.maxMembers,
     isPublic: groupConversation.isGroupPublic,
-    admins: new Set(adminUsers),
+    admins: new Set(
+      adminUsers.map((user) => ({
+        ...user,
+        avatarUrl: user.avatar,
+        preferences: {
+          ...user.preferences,
+          notificationsEnabled: true,
+          soundEnabled: true,
+          language: "en",
+          theme: user.preferences.theme.toLowerCase() as
+            | "light"
+            | "dark"
+            | "system",
+        },
+      }))
+    ),
   });
 }
 

@@ -1,3 +1,4 @@
+//--./src/services/authService.ts--
 import { AuthenticationResponse, SignInRequest, SignUpRequest } from "@/types";
 import { api } from "@/util/apiUtil";
 import { AxiosError } from "axios";
@@ -15,87 +16,82 @@ const setCookie = (
 
 export const signIn = async (data: SignInRequest) => {
   try {
+    console.log("signing in");
     const { accessToken, refreshToken } =
-      await api.post<AuthenticationResponse>("/auth/signin", data, {
+      await api.post<AuthenticationResponse>("/users/auth/signin", data, {
         skipAuth: true,
       });
-    // Set access token with security options
     setCookie("accessToken", accessToken, {
       path: "/",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      httpOnly: true,
-      maxAge: 15 * 60, // 15 minutes
+      maxAge: 15 * 60,
     });
 
-    // Set refresh token with security options
     setCookie("refreshToken", refreshToken, {
       path: "/",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 7 * 24 * 60 * 60,
     });
   } catch (error) {
     if (error instanceof AxiosError) {
-      throw new Error(error.response?.data?.message || "Authentication failed");
+      throw error;
     }
-    throw error;
+    console.error(
+      "Authentication error in signIn function in authService.ts",
+      error
+    );
+    throw new Error("Authentication failed");
   }
 };
 export const signUp = async (data: SignUpRequest) => {
   try {
+    console.log("signing up");
     const { accessToken, refreshToken } =
-      await api.post<AuthenticationResponse>("/auth/signup", data, {
+      await api.post<AuthenticationResponse>("/users/auth/signup", data, {
         skipAuth: true,
       });
-    // Set access token with security options
+    console.log("access token", accessToken);
+    console.log("refresh token", refreshToken);
+
     setCookie("accessToken", accessToken, {
       path: "/",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      httpOnly: true,
-      maxAge: 15 * 60, // 15 minutes
+      maxAge: 15 * 60,
     });
 
-    // Set refresh token with security options
     setCookie("refreshToken", refreshToken, {
       path: "/",
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 7 * 24 * 60 * 60,
     });
   } catch (error) {
     if (error instanceof AxiosError) {
-      throw new Error(error.response?.data?.message || "Authentication failed");
+      throw error;
     }
-    throw error;
+    console.error(
+      "Authentication error in signUp function in authService.ts",
+      error
+    );
+    throw new Error("Authentication failed");
   }
 };
 export const signOut = async () => {
   try {
-    await api.post("/auth/signout");
-    // Clear cookies securely
+    await api.post("/users/auth/signout");
+
     setCookie("accessToken", "", {
       path: "/",
-      expires: new Date(0),
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
       httpOnly: true,
     });
 
     setCookie("refreshToken", "", {
       path: "/",
-      expires: new Date(0),
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
       httpOnly: true,
     });
   } catch (error) {
     if (error instanceof AxiosError) {
-      throw new Error(error.response?.data?.message || "Signout failed");
+      throw error;
     }
-    throw error;
+    console.error(
+      "Authentication error in signOut function in authService.ts",
+      error
+    );
+    throw new Error("Signout failed");
   }
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   SearchResult,
   UserResponse,
@@ -17,9 +17,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Users, User, Mail, Hash, Search } from "lucide-react";
-import { createPrivateChat } from "@/mock/api";
+import { MessageCircle, Users, User, Mail } from "lucide-react";
+import { Separator } from "./ui/separator";
+import { useChatStore } from "@/store/chatStore";
+import { useWebSocketConnection } from "@/store/selectors";
 
 interface SearchResultsProps {
   searchResults: SearchResult;
@@ -28,6 +29,7 @@ interface SearchResultsProps {
     conversation: PrivateConversationResponse | GroupConversationResponse
   ) => void;
   searchQuery: string;
+  clearSearch: () => void;
 }
 
 enum SearchResultTab {
@@ -42,6 +44,7 @@ export function SearchResults({
   setActiveTab,
   setSelectedConversation,
   searchQuery,
+  clearSearch,
 }: SearchResultsProps) {
   const defaultTab = useMemo(() => {
     if (searchResults.users && searchResults.users.length > 0) {
@@ -65,60 +68,60 @@ export function SearchResults({
   const [activeSearchTab, setActiveSearchTab] =
     useState<SearchResultTab>(defaultTab);
 
-  const handleUserClick = async (user: UserResponse) => {
-    const privateConversation = await createPrivateChat(user.username);
-    setActiveTab(ConversationType.PRIVATE);
-    setSelectedConversation(privateConversation);
-  };
+  const { createPrivateChat } = useChatStore();
+  const { connected } = useWebSocketConnection();
+
+  const handleUserClick = useCallback(
+    async (user: UserResponse) => {
+      if (!connected) {
+        console.error("Not connected to server");
+        return;
+      }
+
+      try {
+        await createPrivateChat(user.username);
+        setActiveTab(ConversationType.PRIVATE);
+        clearSearch();
+      } catch (error) {
+        console.error("Error creating private chat:", error);
+      }
+    },
+    [createPrivateChat, setActiveTab, clearSearch, connected]
+  );
 
   const handlePrivateChatClick = (chat: PrivateConversationResponse) => {
     setActiveTab(ConversationType.PRIVATE);
     setSelectedConversation(chat);
+    clearSearch();
   };
 
   const handleGroupChatClick = (chat: GroupConversationResponse) => {
     setActiveTab(ConversationType.GROUP);
     setSelectedConversation(chat);
+    clearSearch();
   };
 
-  const getMessagePreview = (message: MessageResponse) => {
+  const getMessagePreview = useCallback((message: MessageResponse) => {
     if (message.content) {
       return message.content.length > 30
-        ? message.content.substring(0, 30) + "..."
+        ? `${message.content.substring(0, 30)}...`
         : message.content;
-    } else if (message.mediaItems && message.mediaItems.size > 0) {
-      const mediaTypes = Array.from(message.mediaItems).map(
-        (media) => media.fileType
-      );
-      return `[${mediaTypes.join(", ")}]`;
     }
     return "No preview available";
-  };
+  }, []);
 
   const filteredSearchResults = useMemo(() => {
     const filtered: SearchResult = {};
-    if (
-      activeSearchTab === SearchResultTab.USERS &&
-      searchResults.users?.length
-    ) {
+    if (activeSearchTab === SearchResultTab.USERS) {
       filtered.users = searchResults.users;
     }
-    if (
-      activeSearchTab === SearchResultTab.PRIVATE_CHATS &&
-      searchResults.privateChats?.length
-    ) {
+    if (activeSearchTab === SearchResultTab.PRIVATE_CHATS) {
       filtered.privateChats = searchResults.privateChats;
     }
-    if (
-      activeSearchTab === SearchResultTab.GROUP_CHATS &&
-      searchResults.groupChats?.length
-    ) {
+    if (activeSearchTab === SearchResultTab.GROUP_CHATS) {
       filtered.groupChats = searchResults.groupChats;
     }
-    if (
-      activeSearchTab === SearchResultTab.MESSAGES &&
-      searchResults.messages?.length
-    ) {
+    if (activeSearchTab === SearchResultTab.MESSAGES) {
       filtered.messages = searchResults.messages;
     }
     return filtered;
@@ -147,100 +150,65 @@ export function SearchResults({
     );
   };
 
+  const searchTabs = [
+    {
+      tab: SearchResultTab.USERS,
+      icon: User,
+      tooltip: "Users",
+    },
+    {
+      tab: SearchResultTab.PRIVATE_CHATS,
+      icon: MessageCircle,
+      tooltip: "Private Chats",
+    },
+    {
+      tab: SearchResultTab.GROUP_CHATS,
+      icon: Users,
+      tooltip: "Group Chats",
+    },
+    {
+      tab: SearchResultTab.MESSAGES,
+      icon: Mail,
+      tooltip: "Messages",
+    },
+  ];
+
+  const createAvatarFallback = (displayName: string) => {
+    return displayName
+      .split(" ")
+      .map((name) => name[0])
+      .join("")
+      .toUpperCase();
+  };
+
   return (
-    <div className="px-2 py-2 h-fit overflow-y-auto">
+    <div className="px-2 py-2 h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant={
-                  activeSearchTab === SearchResultTab.USERS
-                    ? "default"
-                    : "ghost"
-                }
-                onClick={() => setActiveSearchTab(SearchResultTab.USERS)}
-              >
-                <User className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Users</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant={
-                  activeSearchTab === SearchResultTab.PRIVATE_CHATS
-                    ? "default"
-                    : "ghost"
-                }
-                onClick={() =>
-                  setActiveSearchTab(SearchResultTab.PRIVATE_CHATS)
-                }
-              >
-                <MessageCircle className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Private Chats</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant={
-                  activeSearchTab === SearchResultTab.GROUP_CHATS
-                    ? "default"
-                    : "ghost"
-                }
-                onClick={() => setActiveSearchTab(SearchResultTab.GROUP_CHATS)}
-              >
-                <Users className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Group Chats</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant={
-                  activeSearchTab === SearchResultTab.MESSAGES
-                    ? "default"
-                    : "ghost"
-                }
-                onClick={() => setActiveSearchTab(SearchResultTab.MESSAGES)}
-              >
-                <Mail className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Messages</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {searchTabs.map(({ tab, icon: Icon, tooltip }) => (
+          <TooltipProvider key={tab}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant={activeSearchTab === tab ? "default" : "ghost"}
+                  onClick={() => setActiveSearchTab(tab)}
+                >
+                  <Icon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ))}
       </div>
 
       {/* Users Section */}
-      {filteredSearchResults.users &&
-        filteredSearchResults.users.length > 0 && (
-          <div>
+      <div>
+        {filteredSearchResults.users &&
+        filteredSearchResults.users.length > 0 ? (
+          <>
             {filteredSearchResults.users.map((user) => (
               <TooltipProvider key={user.id}>
                 <Tooltip>
@@ -253,11 +221,7 @@ export function SearchResults({
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={user.avatar} />
                         <AvatarFallback>
-                          {user.displayName
-                            .split(" ")
-                            .map((name) => name[0])
-                            .join("")
-                            .toUpperCase()}
+                          {createAvatarFallback(user.displayName)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col items-start">
@@ -276,13 +240,24 @@ export function SearchResults({
                 </Tooltip>
               </TooltipProvider>
             ))}
-          </div>
+            <p className="text-gray-400 text-sm mt-2 text-center">
+              No More Data
+            </p>
+          </>
+        ) : (
+          SearchResultTab.USERS === activeSearchTab && (
+            <p className="text-gray-400 text-sm mt-2 text-center">
+              Sorry, no users found.
+            </p>
+          )
         )}
+      </div>
 
       {/* Private Chats Section */}
-      {filteredSearchResults.privateChats &&
-        filteredSearchResults.privateChats.length > 0 && (
-          <div className="mt-4">
+      <div className="mt-4">
+        {filteredSearchResults.privateChats &&
+        filteredSearchResults.privateChats.length > 0 ? (
+          <>
             {filteredSearchResults.privateChats.map((chat) => (
               <TooltipProvider key={chat.conversationId}>
                 <Tooltip>
@@ -295,11 +270,7 @@ export function SearchResults({
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={chat.contact.avatar} />
                         <AvatarFallback>
-                          {chat.contact.displayName
-                            .split(" ")
-                            .map((name) => name[0])
-                            .join("")
-                            .toUpperCase()}
+                          {createAvatarFallback(chat.contact.displayName)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col items-start">
@@ -317,15 +288,27 @@ export function SearchResults({
                     <p>{chat.contact.displayName}</p>
                   </TooltipContent>
                 </Tooltip>
+                <Separator className="my-2" />
               </TooltipProvider>
             ))}
-          </div>
+            <p className="text-gray-400 text-sm mt-2 text-center">
+              No More Data
+            </p>
+          </>
+        ) : (
+          SearchResultTab.PRIVATE_CHATS === activeSearchTab && (
+            <p className="text-gray-400 text-sm mt-2 text-center">
+              Sorry, no private chats found.
+            </p>
+          )
         )}
+      </div>
 
       {/* Group Chats Section */}
-      {filteredSearchResults.groupChats &&
-        filteredSearchResults.groupChats.length > 0 && (
-          <div className="mt-4">
+      <div className="mt-4">
+        {filteredSearchResults.groupChats &&
+        filteredSearchResults.groupChats.length > 0 ? (
+          <>
             {filteredSearchResults.groupChats.map((chat) => (
               <TooltipProvider key={chat.conversationId}>
                 <Tooltip>
@@ -338,11 +321,7 @@ export function SearchResults({
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={chat.avatar} />
                         <AvatarFallback>
-                          {chat.groupName
-                            .split(" ")
-                            .map((name) => name[0])
-                            .join("")
-                            .toUpperCase()}
+                          {createAvatarFallback(chat.groupName)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col items-start">
@@ -362,13 +341,24 @@ export function SearchResults({
                 </Tooltip>
               </TooltipProvider>
             ))}
-          </div>
+            <p className="text-gray-400 text-sm mt-2 text-center">
+              No More Data
+            </p>
+          </>
+        ) : (
+          SearchResultTab.GROUP_CHATS === activeSearchTab && (
+            <p className="text-gray-400 text-sm mt-2 text-center">
+              Sorry, no group chats found.
+            </p>
+          )
         )}
+      </div>
 
       {/* Messages Section */}
-      {filteredSearchResults.messages &&
-        filteredSearchResults.messages.length > 0 && (
-          <div className="mt-4">
+      <div className="mt-4">
+        {filteredSearchResults.messages &&
+        filteredSearchResults.messages.length > 0 ? (
+          <>
             {filteredSearchResults.messages.map((message) => (
               <Button
                 key={message.id}
@@ -378,7 +368,6 @@ export function SearchResults({
                   /* Handle message click - you might want to open the conversation here */
                 }}
               >
-                {/* You might want to add an icon or indicator for messages */}
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium text-gray-200">
                     {highlightMatch(message.senderDisplayName)}:
@@ -389,8 +378,18 @@ export function SearchResults({
                 </div>
               </Button>
             ))}
-          </div>
+            <p className="text-gray-400 text-sm mt-2 text-center">
+              No More Data
+            </p>
+          </>
+        ) : (
+          SearchResultTab.MESSAGES === activeSearchTab && (
+            <p className="text-gray-400 text-sm mt-2 text-center">
+              Sorry, no messages found.
+            </p>
+          )
         )}
+      </div>
     </div>
   );
 }

@@ -3,23 +3,26 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Define our route configuration
-// export const config = {
-//   matcher: ["/", "/notifications", "/settings", "/signin", "/signup"],
-// };
 export const config = {
-  matcher: ["/notifications"],
+  matcher: ["/", "/notifications", "/settings", "/signin", "/signup"],
 };
 
 // Define auth-related routes
 const publicRoutes = ["/signin", "/signup"];
+console.log("publicRoutes", publicRoutes);
 const authRoutes = publicRoutes.map((route) => new RegExp(`^${route}$`));
+console.log("authRoutes", authRoutes);
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  console.log("pathname", pathname);
 
   // Get stored tokens
-  const accessToken = request.cookies.get("access_token")?.value;
-  const refreshToken = request.cookies.get("refresh_token")?.value;
+  const accessToken = request.cookies.get("accessToken")?.value;
+  console.log("accessToken", accessToken);
+
+  const refreshToken = request.cookies.get("refreshToken")?.value;
+  console.log("refreshToken", refreshToken);
 
   // Check if the current route is a public route
   const isPublicRoute = authRoutes.some((route) => route.test(pathname));
@@ -43,7 +46,7 @@ export async function middleware(request: NextRequest) {
       try {
         console.log("refreshing token");
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/refresh-token`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/users/auth/refresh`,
           {
             method: "POST",
             headers: {
@@ -58,7 +61,7 @@ export async function middleware(request: NextRequest) {
           const response = NextResponse.redirect(
             new URL("/signin", request.url)
           );
-          response.cookies.delete("refresh_token");
+          response.cookies.delete("refreshToken");
           console.log("invalid refresh token");
           return response;
         }
@@ -70,20 +73,15 @@ export async function middleware(request: NextRequest) {
           // Clone the response to modify headers
           const nextResponse = NextResponse.next();
 
-          // Set new tokens as cookies
-          nextResponse.cookies.set("access_token", newAccessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+          // Set new tokens as cookies without additional encoding
+          nextResponse.cookies.set("accessToken", newAccessToken, {
             maxAge: 15 * 60, // 15 minutes
           });
 
-          nextResponse.cookies.set("refresh_token", newRefreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+          nextResponse.cookies.set("refreshToken", newRefreshToken, {
             maxAge: 7 * 24 * 60 * 60, // 7 days
           });
+
           console.log("refresh token success");
           console.log(nextResponse.cookies);
           return nextResponse;
@@ -91,7 +89,7 @@ export async function middleware(request: NextRequest) {
       } catch (error) {
         console.error("Error refreshing token:", error);
         const response = NextResponse.redirect(new URL("/signin", request.url));
-        response.cookies.delete("refresh_token");
+        response.cookies.delete("refreshToken");
         return response;
       }
     }

@@ -36,6 +36,7 @@ export enum MessageType {
   VIDEO = "VIDEO",
   AUDIO = "AUDIO",
   DOCUMENT = "DOCUMENT",
+  SYSTEM = "SYSTEM",
 }
 
 export type ReactionType = "LIKE" | "LOVE" | "HAHA" | "WOW" | "SAD" | "ANGRY";
@@ -43,6 +44,7 @@ export type ReactionType = "LIKE" | "LOVE" | "HAHA" | "WOW" | "SAD" | "ANGRY";
 export enum Theme {
   LIGHT = "LIGHT",
   DARK = "DARK",
+  SYSTEM = "SYSTEM",
 }
 
 export enum UserStatus {
@@ -82,6 +84,7 @@ export interface UserRequest {
 export interface UserPreferenceResponse {
   notificationEnabled: boolean;
   theme: Theme;
+  // add more preferences as needed
 }
 
 export interface UserResponse {
@@ -100,7 +103,9 @@ export interface User {
   id: number;
   username: string;
   displayName: string;
+  avatarUrl: string;
   status: UserStatus;
+  preferences: UserPreferences;
 }
 
 // Group Chat related
@@ -167,10 +172,9 @@ export interface SearchResult {
 // Message related
 export interface MessageRequest {
   conversationId: number;
-  content?: string; // Optional as it might be a media message
-  mediaIds?: Set<number>; // Optional media attachments
+  content: string;
   type: MessageType;
-  replyToMessageId?: number; // Optional for threaded replies
+  mediaIds: Set<string>;
 }
 export interface MessageDeliveryStatusResponse {
   messageDeliveryStatusId: number;
@@ -181,17 +185,22 @@ export interface MessageDeliveryStatusResponse {
 
 export interface MessageResponse {
   id: number;
-  conversationId: number;
-  senderUsername: string;
-  senderAvatarUrl: string;
-  senderDisplayName: string;
   content: string;
-  mediaItems: Set<MediaResponse>;
   type: MessageType;
-  reactions: Set<ReactionResponse>;
-  createdAt: Timestamp;
-  editedAt: Timestamp;
-  deliveryStatus: Set<MessageDeliveryStatusResponse>;
+  senderId: number;
+  senderAvatarUrl: string;
+  senderUsername: string;
+  senderDisplayName: string;
+  conversationId: number;
+  timestamp: string;
+  status: MessageStatus;
+  reactions: ReactionResponse[];
+  editedAt: string;
+  mediaUrls?: string[];
+  deliveryStatus: Array<{
+    recipient: { username: string };
+    status: MessageStatus;
+  }>;
 }
 export interface ReactionResponse {
   id: number;
@@ -199,6 +208,34 @@ export interface ReactionResponse {
   displayName: string;
   avatarUrl: string;
   type: ReactionType;
+}
+
+export interface EmojiClickData {
+  activeSkinTone: SkinTones;
+  unified: string;
+  unifiedWithoutSkinTone: string;
+  emoji: string;
+  names: string[];
+  imageUrl: string;
+  getImageUrl: (emojiStyle?: EmojiStyle) => string;
+  isCustom: boolean;
+}
+
+enum EmojiStyle {
+  NATIVE = "native",
+  APPLE = "apple",
+  TWITTER = "twitter",
+  GOOGLE = "google",
+  FACEBOOK = "facebook",
+}
+
+enum SkinTones {
+  NEUTRAL = "neutral",
+  LIGHT = "1f3fb",
+  MEDIUM_LIGHT = "1f3fc",
+  MEDIUM = "1f3fd",
+  MEDIUM_DARK = "1f3fe",
+  DARK = "1f3ff",
 }
 
 // Notification related
@@ -283,6 +320,12 @@ export const defaultReactions: ReactionType[] = [
   "ANGRY",
 ] as const;
 
-
 export const ACCESS_TOKEN_KEY = "access_token";
 export const REFRESH_TOKEN_KEY = "refresh_token";
+
+export interface UserPreferences {
+  theme: "light" | "dark" | "system";
+  notificationsEnabled: boolean;
+  soundEnabled: boolean;
+  language: string;
+}
