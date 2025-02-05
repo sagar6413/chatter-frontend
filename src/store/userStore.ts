@@ -3,84 +3,159 @@ import {
   UserPreferenceRequest,
   UserRequest,
   UserResponse,
-} from "@/types/index";
+  Theme,
+} from "@/types";
+import { ApiError } from "@/types/errors";
 import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
 import Cookies from "js-cookie";
-import { AxiosError } from "axios";
 import { signOut } from "@/services/authService";
 // import { getMe, updatePreferences, updateUser } from "@/services/userService";
 import { getMe, updatePreferences, updateUser } from "@/mock/api";
+import { useErrorStore } from "./errorStore";
 
 interface UserState {
   user: UserResponse | null;
-  loading: boolean;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  lastSyncTime: number | null;
+
+  // Actions
   setUser: () => Promise<void>;
   updateUser: (user: UserRequest) => Promise<void>;
   clearUser: () => void;
   updatePreferences: (preferences: UserPreferenceRequest) => Promise<void>;
+  syncUser: () => Promise<void>;
+
+  // Selectors
+  getTheme: () => Theme;
+  getDisplayName: () => string;
+  getAvatarUrl: () => string;
+  getUserId: () => number | null;
 }
 
-export const useUserStore = create<UserState>()((set) => ({
+const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+const INITIAL_STATE = {
   user: null,
-  loading: false,
-  setUser: async () => {
-    try {
-      set({ loading: true });
-      const userResponse = await getMe();
-      set({ user: userResponse, loading: false });
-    } catch (error) {
-      // Handle error, maybe logout if auth error
-      signOut();
-      if (error instanceof AxiosError) {
-        console.error("Error fetching user:", error.response?.data);
-      } else {
-        console.error("Error fetching user:", error);
+  isLoading: false,
+  isAuthenticated: false,
+  lastSyncTime: null,
+};
+
+export const useUserStore = create<UserState>()(
+  devtools(
+    persist(
+      (set, get) => ({
+        ...INITIAL_STATE,
+
+        setUser: async () => {
+          set({ isLoading: true });
+          try {
+            const userResponse = await getMe();
+            set({
+              user: userResponse,
+              isLoading: false,
+              isAuthenticated: true,
+              lastSyncTime: Date.now(),
+            });
+          } catch (error) {
+            useErrorStore.getState().addError(error as ApiError);
+            // Handle auth error by signing out
+            signOut();
+            set({
+              ...INITIAL_STATE,
+              isLoading: false,
+            });
+          }
+        },
+
+        updateUser: async (user: UserRequest) => {
+          set({ isLoading: true });
+          try {
+            const userResponse = await updateUser(user);
+            set({
+              user: userResponse,
+              isLoading: false,
+              lastSyncTime: Date.now(),
+            });
+          } catch (error) {
+            useErrorStore.getState().addError(error as ApiError);
+            set({ isLoading: false });
+          }
+        },
+
+        updatePreferences: async (preferences: UserPreferenceRequest) => {
+          set({ isLoading: true });
+          try {
+            const userPreferenceResponse = await updatePreferences(preferences);
+            set((state) => {
+              if (!state.user) return { ...state, isLoading: false };
+              return {
+                ...state,
+                user: {
+                  ...state.user,
+                  preferences: userPreferenceResponse,
+                },
+                isLoading: false,
+                lastSyncTime: Date.now(),
+              };
+            });
+          } catch (error) {
+            useErrorStore.getState().addError(error as ApiError);
+            set({ isLoading: false });
+          }
+        },
+
+        clearUser: () => {
+          Cookies.remove("accessToken");
+          Cookies.remove("refreshToken");
+          set(INITIAL_STATE);
+        },
+
+        syncUser: async () => {
+          const { lastSyncTime, isAuthenticated, isLoading } = get();
+          if (
+            !isAuthenticated ||
+            isLoading ||
+            (lastSyncTime && Date.now() - lastSyncTime < SYNC_INTERVAL)
+          ) {
+            return;
+          }
+
+          set({ isLoading: true });
+          try {
+            const userResponse = await getMe();
+            set({
+              user: userResponse,
+              isLoading: false,
+              lastSyncTime: Date.now(),
+            });
+          } catch (error) {
+            useErrorStore.getState().addError(error as ApiError);
+            if ((error as ApiError).status === 401) {
+              signOut();
+              set(INITIAL_STATE);
+            } else {
+              set({ isLoading: false });
+            }
+          }
+        },
+
+        // Selectors
+        getTheme: () => get().user?.preferences.theme || Theme.SYSTEM,
+        getDisplayName: () => get().user?.displayName || "Guest",
+        getAvatarUrl: () => get().user?.avatar || "/default-avatar.png",
+        getUserId: () => get().user?.id || null,
+      }),
+      {
+        name: "user-store",
+        partialize: (state) => ({
+          user: state.user,
+          isAuthenticated: state.isAuthenticated,
+        }),
       }
-      set({ user: null, loading: false }); // Clear user data if fetch fails
-    }
-  },
-  updateUser: async (user: UserRequest) => {
-    try {
-      set({ loading: true });
-      const userResponse = await updateUser(user);
-      set({ user: userResponse, loading: false });
-    } catch (error) {
-      // Handle error
-      if (error instanceof AxiosError) {
-        console.error("Error updating user:", error.response?.data);
-      } else {
-        console.error("Error updating user:", error);
-      }
-      set({ loading: false });
-    }
-  },
-  updatePreferences: async (preferences: UserPreferenceRequest) => {
-    try {
-      set({ loading: true });
-      const userPreferenceResponse = await updatePreferences(preferences);
-      set((state) => {
-        if (!state.user) return { ...state, loading: false };
-        return {
-          ...state, // Preserve all other state properties
-          user: {
-            ...state.user, // Preserve all user properties
-            prefrences: userPreferenceResponse, // Update only preferences
-          },
-          loading: false,
-        };
-      });
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        console.error("Error updating preferences:", error.response?.data);
-      } else {
-        console.error("Error updating preferences:", error);
-      }
-      set({ loading: false });
-    }
-  },
-  clearUser: () => {
-    set({ user: null, loading: false });
-    Cookies.remove("accessToken");
-    Cookies.remove("refreshToken");
-  },
-}));
+    ),
+    { name: "UserStore" }
+  )
+);

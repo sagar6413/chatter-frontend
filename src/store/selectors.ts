@@ -1,32 +1,66 @@
 import { useChatStore } from "./chatStore";
 import { useWebSocketStore } from "./webSocketStore";
-import { ConversationType } from "@/types";
-import { useMemo } from "react";
+import { ConversationType, MessageResponse } from "@/types";
+import { useMemo, useCallback } from "react";
+
+// Selector functions
+const selectPrivateConversations = (
+  state: ReturnType<typeof useChatStore.getState>
+) => state.privateConversations;
+const selectGroupConversations = (
+  state: ReturnType<typeof useChatStore.getState>
+) => state.groupConversations;
 
 // Chat selectors
-export const usePrivateConversations = () =>
-  useChatStore((state) => state.privateConversations);
+export const usePrivateConversations = () => {
+  return useChatStore(selectPrivateConversations);
+};
 
-export const useGroupConversations = () =>
-  useChatStore((state) => state.groupConversations);
+export const useGroupConversations = () => {
+  return useChatStore(selectGroupConversations);
+};
 
-export const useConversationMessages = (conversationId: number) =>
-  useChatStore((state) => state.messages.get(conversationId) || []);
+export const useConversationMessages = (conversationId: number) => {
+  const messages = useChatStore(
+    useCallback(
+      (state) => state.messages.get(conversationId) || EMPTY_ARRAY,
+      [conversationId]
+    )
+  );
+  return messages;
+};
+
+const EMPTY_ARRAY: MessageResponse[] = [];
 
 export const useConversation = (
   conversationId: number,
   type: ConversationType
 ) => {
-  const store = useChatStore();
-  return type === ConversationType.PRIVATE
-    ? store.privateConversations.get(conversationId)
-    : store.groupConversations.get(conversationId);
+  const selectConversation = useCallback(
+    (state: ReturnType<typeof useChatStore.getState>) => {
+      return type === ConversationType.PRIVATE
+        ? state.privateConversations.get(conversationId)
+        : state.groupConversations.get(conversationId);
+    },
+    [conversationId, type]
+  );
+  return useChatStore(selectConversation);
 };
 
 // WebSocket selectors
+const selectWebSocketConnected = (
+  state: ReturnType<typeof useWebSocketStore.getState>
+) => state.connected;
+const selectWebSocketError = (
+  state: ReturnType<typeof useWebSocketStore.getState>
+) => state.connectionError;
+const selectWebSocketSubscribe = (
+  state: ReturnType<typeof useWebSocketStore.getState>
+) => state.subscribeToConversation;
+
 export const useWebSocketConnection = () => {
-  const connected = useWebSocketStore((state) => state.connected);
-  const error = useWebSocketStore((state) => state.connectionError);
+  const connected = useWebSocketStore(selectWebSocketConnected);
+  const error = useWebSocketStore(selectWebSocketError);
 
   return useMemo(
     () => ({
@@ -38,10 +72,8 @@ export const useWebSocketConnection = () => {
 };
 
 export const useWebSocketSubscription = () => {
-  const subscribeToConversation = useWebSocketStore(
-    (state) => state.subscribeToConversation
-  );
-  const connected = useWebSocketStore((state) => state.connected);
+  const subscribeToConversation = useWebSocketStore(selectWebSocketSubscribe);
+  const connected = useWebSocketStore(selectWebSocketConnected);
 
   return useMemo(
     () => ({
@@ -53,26 +85,31 @@ export const useWebSocketSubscription = () => {
 };
 
 // Chat actions
+const selectChatActions = (
+  state: ReturnType<typeof useChatStore.getState>
+) => ({
+  addMessage: state.addMessage,
+  updateMessageStatus: state.updateMessageStatus,
+  addReaction: state.addReaction,
+  loadMessages: state.loadMessages,
+  loadMoreMessages: state.loadMoreMessages,
+});
+
 export const useChatActions = () => {
-  const store = useChatStore();
-  return {
-    addMessage: store.addMessage,
-    updateMessageStatus: store.updateMessageStatus,
-    addReaction: store.addReaction,
-    loadMessages: store.loadMessages,
-    loadMoreMessages: store.loadMoreMessages,
-  };
+  return useChatStore(selectChatActions);
 };
 
 // Conversation actions
-export const useConversationActions = () => {
-  const store = useChatStore();
+const selectConversationActions = (
+  state: ReturnType<typeof useChatStore.getState>
+) => ({
+  createPrivateChat: state.createPrivateChat,
+  createGroupChat: state.createGroupChat,
+  updateGroupSettings: state.updateGroupSettings,
+  addGroupParticipants: state.addGroupParticipants,
+  removeGroupParticipant: state.removeGroupParticipant,
+});
 
-  return {
-    createPrivateChat: store.createPrivateChat,
-    createGroupChat: store.createGroupChat,
-    updateGroupSettings: store.updateGroupSettings,
-    addGroupParticipants: store.addGroupParticipants,
-    removeGroupParticipant: store.removeGroupParticipant,
-  };
+export const useConversationActions = () => {
+  return useChatStore(selectConversationActions);
 };

@@ -1,4 +1,3 @@
-//--./src/store/errorStore.ts--
 import { ApiError } from "@/types/errors";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";

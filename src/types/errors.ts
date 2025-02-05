@@ -15,7 +15,14 @@ export interface WebSocketError extends ApiError {
   lastAttemptTime?: string;
 }
 
-export type ErrorSource = "api" | "websocket" | "react" | "unknown";
+export type ErrorSource = "api" | "websocket" | "react" | "unknown" | "auth";
+
+export type ErrorType =
+  | "error:api"
+  | "error:websocket"
+  | "error:auth"
+  | "error:react"
+  | "error:unknown";
 
 export interface ErrorState {
   errors: Array<ApiError | WebSocketError>;

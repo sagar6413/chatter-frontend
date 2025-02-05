@@ -6,8 +6,8 @@ import { ConversationType } from "@/types";
 import {
   usePrivateConversations,
   useGroupConversations,
-  useWebSocketConnection,
 } from "@/store/selectors";
+import { useChatStore } from "@/store/chatStore";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type {
@@ -33,7 +33,20 @@ const ConversationList = memo(function ConversationList({
 }: ConversationListProps) {
   const privateConversations = usePrivateConversations();
   const groupConversations = useGroupConversations();
-  const { connected } = useWebSocketConnection();
+  const { fetchPrivateChats, fetchGroupChats } = useChatStore();
+
+  // Add effect to fetch conversations on mount
+  useEffect(() => {
+    const loadConversations = async () => {
+      if (activeTab === ConversationType.PRIVATE) {
+        await fetchPrivateChats();
+      } else {
+        await fetchGroupChats();
+      }
+    };
+
+    loadConversations();
+  }, [activeTab, fetchPrivateChats, fetchGroupChats]);
 
   // Convert Maps to arrays for rendering
   const privateChats = useMemo(
@@ -47,17 +60,10 @@ const ConversationList = memo(function ConversationList({
 
   const handleConversationSelect = useCallback(
     (conversation: PrivateConversationResponse | GroupConversationResponse) => {
-      if (!connected) return;
       setSelectedConversations(conversation);
     },
-    [connected, setSelectedConversations]
+    [setSelectedConversations]
   );
-
-  useEffect(() => {
-    if (!connected) {
-      setSelectedConversations(null);
-    }
-  }, [connected, setSelectedConversations]);
 
   const getAvatarFallback = useCallback((name: string) => {
     return name
@@ -85,8 +91,7 @@ const ConversationList = memo(function ConversationList({
           "hover:bg-slate-800/50",
           selectedConversation?.conversationId === conversation.conversationId
             ? "bg-slate-800/70"
-            : "bg-transparent",
-          !connected && "opacity-50 cursor-not-allowed"
+            : "bg-transparent"
         )}
       >
         <Avatar className="h-10 w-10 border-2 border-purple-600/20">
@@ -110,7 +115,6 @@ const ConversationList = memo(function ConversationList({
   }, [
     privateChats,
     selectedConversation,
-    connected,
     handleConversationSelect,
     getAvatarFallback,
   ]);
@@ -133,8 +137,7 @@ const ConversationList = memo(function ConversationList({
           "hover:bg-slate-800/50",
           selectedConversation?.conversationId === conversation.conversationId
             ? "bg-slate-800/70"
-            : "bg-transparent",
-          !connected && "opacity-50 cursor-not-allowed"
+            : "bg-transparent"
         )}
       >
         <Avatar className="h-10 w-10 border-2 border-purple-600/20">
@@ -158,7 +161,6 @@ const ConversationList = memo(function ConversationList({
   }, [
     groupChats,
     selectedConversation,
-    connected,
     handleConversationSelect,
     getAvatarFallback,
   ]);
@@ -167,19 +169,9 @@ const ConversationList = memo(function ConversationList({
     <ScrollArea className="h-full">
       <div className="flex flex-col gap-2 p-4">
         {activeTab === ConversationType.PRIVATE ? (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-purple-50">
-              Private Chats
-            </h2>
-            {renderPrivateChats}
-          </div>
+          <div className="space-y-4">{renderPrivateChats}</div>
         ) : (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-purple-50">
-              Group Chats
-            </h2>
-            {renderGroupChats}
-          </div>
+          <div className="space-y-4">{renderGroupChats}</div>
         )}
       </div>
     </ScrollArea>

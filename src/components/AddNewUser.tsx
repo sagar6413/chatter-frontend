@@ -10,7 +10,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { useWebSocketConnection } from "@/store/selectors";
 
 interface AddNewUserProps {
   onClose: () => void;
@@ -23,11 +22,9 @@ const UserItem = memo(
   ({
     user,
     onSelect,
-    disabled,
   }: {
     user: UserResponse;
     onSelect: (user: UserResponse) => void;
-    disabled: boolean;
   }) => (
     <motion.div
       initial={{ opacity: 0, y: 5 }}
@@ -38,7 +35,6 @@ const UserItem = memo(
       <button
         type="button"
         onClick={() => onSelect(user)}
-        disabled={disabled}
         className="flex items-center gap-3 p-3 w-full hover:bg-purple-500/10 cursor-pointer rounded-xl group transition-all duration-200 ease-out border border-transparent hover:border-purple-500/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Avatar className="h-10 w-10 ring-2 ring-purple-500/30 group-hover:ring-purple-500/50 transition-all">
@@ -90,7 +86,6 @@ export function AddNewUser({ onClose, onSelectUser, isOpen }: AddNewUserProps) {
   const [error, setError] = useState<string | null>(null);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
-  const { connected } = useWebSocketConnection();
 
   useEffect(() => {
     let isMounted = true;
@@ -99,11 +94,6 @@ export function AddNewUser({ onClose, onSelectUser, isOpen }: AddNewUserProps) {
     const searchUsers = async () => {
       if (!debouncedSearchQuery.trim()) {
         setUsers([]);
-        return;
-      }
-
-      if (!connected) {
-        setError("Not connected to server");
         return;
       }
 
@@ -137,7 +127,7 @@ export function AddNewUser({ onClose, onSelectUser, isOpen }: AddNewUserProps) {
       isMounted = false;
       controller.abort();
     };
-  }, [debouncedSearchQuery, connected]);
+  }, [debouncedSearchQuery]);
 
   const handleUserSelect = (user: UserResponse) => {
     onSelectUser(user);
@@ -208,7 +198,6 @@ export function AddNewUser({ onClose, onSelectUser, isOpen }: AddNewUserProps) {
                   key={user.id}
                   user={user}
                   onSelect={handleUserSelect}
-                  disabled={!connected}
                 />
               ))
             ) : (

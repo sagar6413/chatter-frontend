@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useWebSocketStore } from "@/store/webSocketStore";
 
 export function useWebSocketConnection(token: string) {
-  const connected = useWebSocketStore((state) => state.connected);
+  const isConnected = useWebSocketStore((state) => state.isConnected);
   const connectionError = useWebSocketStore((state) => state.connectionError);
   const connect = useWebSocketStore((state) => state.connect);
   const disconnect = useWebSocketStore((state) => state.disconnect);
@@ -17,5 +17,5 @@ export function useWebSocketConnection(token: string) {
     }
   }, [token, connect, disconnect]);
 
-  return { connected, error: connectionError };
+  return { connected: isConnected, error: connectionError };
 }

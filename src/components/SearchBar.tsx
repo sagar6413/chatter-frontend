@@ -18,7 +18,6 @@ import type {
   ConversationType,
   PrivateConversationResponse,
 } from "@/types";
-import { useWebSocketConnection } from "@/store/selectors";
 
 // Props interface with proper documentation
 interface SearchBarProps {
@@ -55,18 +54,10 @@ export function SearchBar({
   // Refs
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Store access
-  const { connected } = useWebSocketConnection();
-
   // Memoized debounced search handler
   const debouncedSearch = useMemo(
     () =>
       debounce(async (value: string) => {
-        if (!connected) {
-          setError(new Error("Not connected to server"));
-          return;
-        }
-
         try {
           setError(null);
           setIsSearching(true);
@@ -78,7 +69,7 @@ export function SearchBar({
           setIsSearching(false);
         }
       }, 300),
-    [onSearch, connected]
+    [onSearch]
   );
 
   // Cleanup effect

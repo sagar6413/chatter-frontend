@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useWebSocketConnection } from "@/store/selectors";
 import { FaTimes } from "react-icons/fa";
 
 interface CreateNewGroupProps {
@@ -32,15 +31,8 @@ export function CreateNewGroup({
   const [participants, setParticipants] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
-  const { connected } = useWebSocketConnection();
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!connected) {
-      setError("Not connected to server");
-      return;
-    }
 
     if (!groupName.trim()) {
       setError("Group name is required");
@@ -159,7 +151,7 @@ export function CreateNewGroup({
         <Button
           type="submit"
           className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={!connected || !groupName.trim()}
+          disabled={!groupName.trim()}
         >
           Create Group
         </Button>

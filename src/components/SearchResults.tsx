@@ -20,7 +20,6 @@ import {
 import { MessageCircle, Users, User, Mail } from "lucide-react";
 import { Separator } from "./ui/separator";
 import { useChatStore } from "@/store/chatStore";
-import { useWebSocketConnection } from "@/store/selectors";
 
 interface SearchResultsProps {
   searchResults: SearchResult;
@@ -69,15 +68,9 @@ export function SearchResults({
     useState<SearchResultTab>(defaultTab);
 
   const { createPrivateChat } = useChatStore();
-  const { connected } = useWebSocketConnection();
 
   const handleUserClick = useCallback(
     async (user: UserResponse) => {
-      if (!connected) {
-        console.error("Not connected to server");
-        return;
-      }
-
       try {
         await createPrivateChat(user.username);
         setActiveTab(ConversationType.PRIVATE);
@@ -86,7 +79,7 @@ export function SearchResults({
         console.error("Error creating private chat:", error);
       }
     },
-    [createPrivateChat, setActiveTab, clearSearch, connected]
+    [createPrivateChat, setActiveTab, clearSearch]
   );
 
   const handlePrivateChatClick = (chat: PrivateConversationResponse) => {
